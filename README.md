@@ -15,7 +15,7 @@ simple little module for getting very specific user inputs.
 
 * `until_not(char: string) -> string` — like `until()` except it reads until the keypress of input is not `char`
 
-* `until_not_multi(chars: string || list) -> str` — a combination of `until_not()` and `until_multi()`; gets stdin until something not in `chars` is read
+* `until_not_multi(chars: string || list) -> string` — a combination of `until_not()` and `until_multi()`; gets stdin until something not in `chars` is read
 
 * `_until_demo() -> None` — small demo of `until()`
 
