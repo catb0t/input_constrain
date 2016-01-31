@@ -41,8 +41,6 @@ def read_single_keypress() -> str:
         ret = sys.stdin.read(1) # returns a single character
     except KeyboardInterrupt:
         ret = 0
-    except EOFError:
-        ret = 0
     finally:
         # restore old state
         termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
