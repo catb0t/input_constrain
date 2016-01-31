@@ -1,4 +1,6 @@
-def read_single_keypress():
+#!/usr/bin/env python3
+
+def read_single_keypress() -> str:
     """Waits for a single keypress on stdin.
 
     This is a silly function to call if you need to do it a lot because it has
@@ -45,6 +47,77 @@ def read_single_keypress():
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
     return ret
 
+def until(char) -> str:
+    """get chars of stdin until char is read"""
+    import sys
+    y = ""
+    sys.stdout.flush()
+    while True:
+        i = read_single_keypress()
+        _ = sys.stdout.write(i)
+        sys.stdout.flush()
+        if i == char:
+            break
+        y += i
+    return y
+
+def thismany(count) -> str:
+    """get exactly count chars of stdin"""
+    import sys
+    y = ""
+    sys.stdout.flush()
+    for _ in range(count):
+        i = read_single_keypress()
+        _ = sys.stdout.write(i)
+        sys.stdout.flush()
+        y += i
+    return y
+
+def until_multi(chars) -> str:
+    """read stdin until any of a set of chars are read"""
+    import sys
+    chars = list(chars)
+    y = ""
+    sys.stdout.flush()
+    while True:
+        i = read_single_keypress()
+        _ = sys.stdout.write(i)
+        sys.stdout.flush()
+        if i in chars:
+            break
+        y += i
+    return y
+
+def until_not(char) -> str:
+    """read stdin until char stops being read"""
+    import sys
+    y = ""
+    sys.stdout.flush()
+    while True:
+        i = read_single_keypress()
+        _ = sys.stdout.write(i)
+        sys.stdout.flush()
+        if i != char:
+            break
+        y += i
+    return y
+
+def until_not_multi(chars) -> str:
+    """read stdin until !(chars)"""
+    import sys
+    chars = list(chars)
+    y = ""
+    sys.stdout.flush()
+    while True:
+        i = read_single_keypress()
+        _ = sys.stdout.write(i)
+        sys.stdout.flush()
+        if i not in chars:
+            break
+        y += i
+    return y
+
+
 def _until_demo() -> None:
     """demonstrate the until function"""
     print("get until what?")
@@ -53,6 +126,7 @@ def _until_demo() -> None:
     sys.stdout.flush()
     y = until(char)
     print("\n" + y)
+
 
 def _thismany_demo() -> None:
     """demonstrate the thismany function"""
@@ -67,32 +141,19 @@ def _thismany_demo() -> None:
     y = thismany(kps)
     print("\n" + y)
 
-def until(char):
-    """get chars of stdin until char is read"""
-    import sys
-    y = ""
-    sys.stdout.flush()
-    while True:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        y += i
-        if i == char:
-            break
-    return y
 
-def thismany(count):
-    """get exactly count chars of stdin"""
-    import sys
-    y = ""
-    sys.stdout.flush()
-    for _ in range(count):
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        y += i
-    return y
+def _can_you_vote() -> str:
+    """a practical example:
+    test if a user can vote based purely on keypresses"""
+    print("can you vote? age : ", end="")
+    x = int("0" + until_not_multi("0123456789"))
+    if not x:
+        print("\nsorry, age can only consist of digits.")
+        return
+    print("\nyour age is", x, end="")
+    print("\nYou can vote!" if x >= 18 else "\nSorry! you can't vote")
 
 if __name__ == "__main__":
-    _until_demo()
-    _thismany_demo()
+    #_until_demo()
+    #_thismany_demo()
+    _can_you_vote()
