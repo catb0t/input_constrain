@@ -150,8 +150,7 @@ def _can_you_vote() -> str:
     if not x:
         print("\nsorry, age can only consist of digits.")
         return
-    print("\nyour age is", x, end="")
-    print("\nYou can vote!" if x >= 18 else "\nSorry! you can't vote")
+    print("your age is", x, "\nYou can vote!" if x >= 18 else "Sorry! you can't vote")
 
 if __name__ == "__main__":
     #_until_demo()
