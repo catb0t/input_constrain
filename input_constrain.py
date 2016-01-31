@@ -41,25 +41,13 @@ def read_single_keypress() -> str:
         ret = sys.stdin.read(1) # returns a single character
     except KeyboardInterrupt:
         ret = 0
+    except EOFError:
+        ret = 0
     finally:
         # restore old state
         termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
     return ret
-
-def until(char) -> str:
-    """get chars of stdin until char is read"""
-    import sys
-    y = ""
-    sys.stdout.flush()
-    while True:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        if i == char:
-            break
-        y += i
-    return y
 
 def thismany(count) -> str:
     """get exactly count chars of stdin"""
@@ -70,6 +58,20 @@ def thismany(count) -> str:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
+        y += i
+        return y
+
+def until(char) -> str:
+    """get chars of stdin until char is read"""
+    import sys
+    y = ""
+    sys.stdout.flush()
+    while True:
+        i = read_single_keypress()
+        _ = sys.stdout.write(i)
+        sys.stdout.flush()
+        if i == char or i == 0 or i == 4:
+            break
         y += i
     return y
 
@@ -83,7 +85,7 @@ def until_multi(chars) -> str:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
-        if i in chars:
+        if i in chars or i == 0:
             break
         y += i
     return y
@@ -97,7 +99,7 @@ def until_not(char) -> str:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
-        if i != char:
+        if i != char or i == 0:
             break
         y += i
     return y
@@ -112,7 +114,7 @@ def until_not_multi(chars) -> str:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
-        if i not in chars:
+        if i not in chars or i == 0:
             break
         y += i
     return y
