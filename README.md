@@ -20,7 +20,7 @@
 
 * class `_GetchUnix`: get a raw character from stdin, on any *nx box
 
-* class `_GetchWindows`: get a raw character from stdin, on any *nx box
+* class `_GetchWindows`: get a raw character from stdin, on any Windows box
 
 * function `nbsp`: do stuff accordingly for certain chars of input; handles backspace, etc
 
