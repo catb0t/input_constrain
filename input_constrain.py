@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
+
 class _Getch:
     """Gets a single character from standard input."""
     def __init__(self):
@@ -17,8 +19,8 @@ class _GetchUnix:
         import tty
 
     def __call__(self):
-        , tty, termios
-        fd = stdin.fileno()
+        import tty, termios
+        fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
             tty.setraw(sys.stdin.fileno())
@@ -40,12 +42,14 @@ class _GetchWindows:
 def read_single_keypress():
     getch = _Getch()
     x = getch.__call__()
-    if ord(x) == 27 or ord(x) == 127:
+    ox = ord(x)
+    if ox == 27 or ox == 127:
         sys.stdout.write(chr(8))
-    elif ord(x) == 3:
-        raise KeyboardInterrupt
-    elif ord(x) == 4:
-        raise EOFError
+        sys.stdout.write(chr(32))
+        sys.stdout.write(chr(8))
+
+    elif ox == 3: raise KeyboardInterrupt
+    elif ox == 4: raise EOFError
     return x
 
 def nbsp(x, y):
