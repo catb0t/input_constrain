@@ -31,7 +31,7 @@ def _can_you_vote() -> str:
     """a practical example:
     test if a user can vote based purely on keypresses"""
     print("can you vote? age : ", end="")
-    x = int("0" + until_not_multi("0123456789"))
+    x = int("0" + until_not("0123456789"))
     if not x:
         print("\nsorry, age can only consist of digits.")
         return

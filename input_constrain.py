@@ -40,6 +40,7 @@ class _GetchWindows:
 
 
 def read_single_keypress():
+    """interface for _Getch"""
     getch = _Getch()
     x = getch.__call__()
     ox = ord(x)
@@ -52,6 +53,9 @@ def read_single_keypress():
     elif ox == 4: raise EOFError
     return x
 
+parsenum = (lambda num:
+                (return (sys.maxsize (if 0 > num) else num)))
+
 def nbsp(x, y):
     """append x to y as long as x is not DEL or backspace"""
     if ord(x) == 27 or ord(x) == 127:
@@ -60,10 +64,12 @@ def nbsp(x, y):
     y.append(x)
     return y
 
-def thismany(count) -> str:
+
+def thismany(count=-1) -> str:
     """get exactly count chars of stdin"""
     y = []
-    for _ in range(count):
+    count = parsenum(count)
+    while len(y) <= count:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
@@ -71,24 +77,13 @@ def thismany(count) -> str:
     return "".join(y)
 
 
-def until(char) -> str:
-    """get chars of stdin until char is read"""
+def until(chars, count=-1) -> str:
+    """get chars of stdin until any of chars is read,
+    or until count chars have been read, whichever comes first"""
     y = []
-    while True:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        if i == char:
-            break
-        y = nbsp(i, y)
-    return "".join(y)
-
-
-def until_multi(chars) -> str:
-    """read stdin until any of a set of chars are read"""
     chars = list(chars)
-    y = []
-    while True:
+    count = parsenum(count)
+    while len(y) <= count:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
@@ -98,24 +93,12 @@ def until_multi(chars) -> str:
     return "".join(y)
 
 
-def until_not(char) -> str:
-    """read stdin until char stops being read"""
+def until_not(chars, count=-1) -> str:
+    """read stdin until any of chars stop being read"""
     y = []
-    while True:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        if i != char:
-            break
-        y = nbsp(i, y)
-    return "".join(y)
-
-
-def until_not_multi(chars) -> str:
-    """read stdin until !(chars)"""
     chars = list(chars)
-    y = []
-    while True:
+    count = parsenum(count)
+    while len(y) <= count:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
         sys.stdout.flush()
