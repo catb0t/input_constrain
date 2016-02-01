@@ -2,6 +2,7 @@
 import sys
 from input_constrain import *
 
+
 def _until_demo() -> None:
     """demonstrate the until function"""
     print("get until what?")
@@ -34,7 +35,12 @@ def _can_you_vote() -> str:
     if not x:
         print("\nsorry, age can only consist of digits.")
         return
-    print("your age is", x, "\nYou can vote!" if x >= 18 else "Sorry! you can't vote")
+    print(
+        "your age is", x, "\nYou can vote!"
+        if x >= 18
+        else "Sorry! you can't vote"
+    )
+
 
 def _forth_syntax_test() -> str:
     """
@@ -42,14 +48,15 @@ def _forth_syntax_test() -> str:
     `function` definitons start at the beginning of a line with a `:` colon
     and go until the next semicolon on the end of that line.
 
-    this is an example of how this module can be used in a Forth REPL to compile statements specially;
+    this is an example of how this module can be used
+    in a Forth REPL to compile statements specially;
     it's implemented in catb0t/microcat as well.
     """
     sys.stdout.write("demo FORTH repl \n> ")
     sys.stdout.flush()
     firstchar = read_single_keypress()
     if firstchar != ":":
-        return
+        return print("first char wasn't ':'")
     _ = sys.stdout.write(firstchar)
     defn = firstchar + until(";") + ";"
     sys.stdout.write("\nrepl got:\n" + defn + "\n")
