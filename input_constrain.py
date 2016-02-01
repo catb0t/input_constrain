@@ -14,11 +14,11 @@ class _Getch:
 
 class _GetchUnix:
     def __init__(self):
-        import tty, sys
+        import tty
 
     def __call__(self):
-        import sys, tty, termios
-        fd = sys.stdin.fileno()
+        , tty, termios
+        fd = stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
             tty.setraw(sys.stdin.fileno())
@@ -38,7 +38,6 @@ class _GetchWindows:
 
 
 def read_single_keypress():
-    import sys
     getch = _Getch()
     x = getch.__call__()
     if ord(x) == 27 or ord(x) == 127:
@@ -59,9 +58,7 @@ def nbsp(x, y):
 
 def thismany(count) -> str:
     """get exactly count chars of stdin"""
-    import sys
     y = []
-    sys.stdout.flush()
     for _ in range(count):
         i = read_single_keypress()
         _ = sys.stdout.write(i)
@@ -72,9 +69,7 @@ def thismany(count) -> str:
 
 def until(char) -> str:
     """get chars of stdin until char is read"""
-    import sys
     y = []
-    sys.stdout.flush()
     while True:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
@@ -87,10 +82,8 @@ def until(char) -> str:
 
 def until_multi(chars) -> str:
     """read stdin until any of a set of chars are read"""
-    import sys
     chars = list(chars)
     y = []
-    sys.stdout.flush()
     while True:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
@@ -103,9 +96,7 @@ def until_multi(chars) -> str:
 
 def until_not(char) -> str:
     """read stdin until char stops being read"""
-    import sys
     y = []
-    sys.stdout.flush()
     while True:
         i = read_single_keypress()
         _ = sys.stdout.write(i)
@@ -118,10 +109,8 @@ def until_not(char) -> str:
 
 def until_not_multi(chars) -> str:
     """read stdin until !(chars)"""
-    import sys
     chars = list(chars)
     y = []
-    sys.stdout.flush()
     while True:
         i = read_single_keypress()
         _ = sys.stdout.write(i)

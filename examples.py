@@ -53,7 +53,6 @@ def _forth_syntax_test() -> str:
     it's implemented in catb0t/microcat as well.
     """
     sys.stdout.write("demo FORTH repl \n> ")
-    sys.stdout.flush()
     firstchar = read_single_keypress()
     if firstchar != ":":
         return print("first char wasn't ':'")
