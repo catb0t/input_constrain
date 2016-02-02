@@ -54,9 +54,9 @@ def _forth_syntax_test() -> str:
     """
     sys.stdout.write("demo FORTH repl \n> ")
     firstchar = read_single_keypress()
+    _ = sys.stdout.write(firstchar)
     if firstchar != ":":
         return print("first char wasn't ':'")
-    _ = sys.stdout.write(firstchar)
     defn = firstchar + until(";") + ";"
     sys.stdout.write("\nrepl got:\n" + defn + "\n")
     return

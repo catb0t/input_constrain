@@ -54,12 +54,15 @@ def read_single_keypress():
     return x
 
 parsenum = (lambda num:
-                (return (sys.maxsize (if 0 > num) else num)))
+                (sys.maxsize if 0 > num else num))
 
 def nbsp(x, y):
     """append x to y as long as x is not DEL or backspace"""
     if ord(x) == 27 or ord(x) == 127:
-        y.pop()
+        try:
+            y.pop()
+        except IndexError:
+            pass
         return y
     y.append(x)
     return y
