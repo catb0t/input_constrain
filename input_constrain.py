@@ -1,25 +1,18 @@
 #!/usr/bin/env python3
 
 import sys
+from platform import system
 
-class _Getch:
-    """Gets a single character from standard input."""
-    def __init__(self):
-        try:
-            self.impl = _GetchWindows()
-        except ImportError:
-            self.impl = _GetchUnix()
+if system == "Windows":
+    import msvcrt
 
-    def __call__(self):
-        return self.impl()
+    def _Getch():
+        return msvcrt.getch()
 
+else:
+    import tty, termios
 
-class _GetchUnix:
-    def __init__(self):
-        import tty
-
-    def __call__(self):
-        import tty, termios
+    def _Getch():
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -27,40 +20,38 @@ class _GetchUnix:
             ch = sys.stdin.read(1)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        return ch
+            return ch
 
 
-class _GetchWindows:
-    def __init__(self):
-        import msvcrt
+def parsenum(num):
+    return sys.maxsize if 0 > num else num
 
-    def __call__(self):
-        import msvcrt
-        return msvcrt.getch()
-
-
-parsenum = (lambda num:
-            (sys.maxsize if 0 > num else num))
+CHAR_INT = chr(3)
+CHAR_EOF = chr(4)
+CHAR_BKS = chr(8)
+CHAR_ESC = chr(27)
+CHAR_SPC = chr(32)
+CHAR_DEL = chr(127)
 
 
-def read_single_keypress():
+def _read_keypress():
     """interface for _Getch that interprets backspace and DEL properly"""
-    getch = _Getch()
-    x = getch.__call__()
-    ox = ord(x)
-    if ox == 27 or ox == 127:
-        sys.stdout.write(chr(8))
-        sys.stdout.write(chr(32))  # hacky? indeed. does it *work*? hell yeah!
-        sys.stdout.write(chr(8))
+    c = _Getch()
 
-    elif ox == 3: raise KeyboardInterrupt
-    elif ox == 4: raise EOFError
-    return x
+    if c in (CHAR_BKS, CHAR_DEL, CHAR_ESC):
+        sys.stdout.write(CHAR_BKS)
+        sys.stdout.write(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
+        sys.stdout.write(CHAR_BKS)
+
+    elif c == CHAR_INT: raise KeyboardInterrupt
+    elif c == CHAR_EOF: raise EOFError
+
+    return c
 
 
-def nbsp(x, y):
+def _nbsp(x, y):
     """append x to y as long as x is not DEL or backspace"""
-    if ord(x) == 27 or ord(x) == 127:
+    if x in (CHAR_DEL, CHAR_BKS):
         try:
             y.pop()
         except IndexError:
@@ -70,53 +61,53 @@ def nbsp(x, y):
     return y
 
 
+def _writer(i):
+    sys.stdout.write(i)
+    sys.stdout.flush()
+
+
+def pretty_press() -> str:
+    """literally just read any fancy char from stdin let caller do whatever"""
+    i = _read_keypress()
+    _writer(i)
+    return _nbsp(i, y)
+
+
 def thismany(count=-1) -> str:
     """get exactly count chars of stdin"""
     y = []
     count = parsenum(count)
     while len(y) <= count:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        y = nbsp(i, y)
+        i = _read_keypress()
+        _writer(i)
+        y = _nbsp(i, y)
+    return "".join(y)
+
+
+def _until_condition(chars, condition, count) -> str:
+    y = []
+    while len(y) <= count:
+        i = _read_keypress()
+        _writer(i)
+        if condition(i, chars):
+            break
+        y = _nbsp(i, y)
     return "".join(y)
 
 
 def until(chars, count=-1) -> str:
     """get chars of stdin until any of chars is read,
     or until count chars have been read, whichever comes first"""
-    y = []
-    chars = list(chars)
-    count = parsenum(count)
-    while len(y) <= count:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        if i in chars:
-            break
-        y = nbsp(i, y)
-    return "".join(y)
+
+    return _until_condition(
+        chars, lambda i, chars: i in chars, parsenum(count)
+    )
 
 
 def until_not(chars, count=-1) -> str:
     """read stdin until any of chars stop being read,
     or until count chars have been read; whichever comes first"""
-    y = []
-    chars = list(chars)
-    count = parsenum(count)
-    while len(y) <= count:
-        i = read_single_keypress()
-        _ = sys.stdout.write(i)
-        sys.stdout.flush()
-        if i not in chars:
-            break
-        y = nbsp(i, y)
-    return "".join(y)
 
-
-def pretty_press() -> str:
-    """literally just read any fancy char from stdin let caller do whatever"""
-    i = read_single_keypress()
-    _ = sys.stdout.write(i)
-    sys.stdout.flush()
-    return nbsp(i, y)
+    return _until_condition(
+        chars, lambda i, chars: i not in chars, parsenum(count)
+    )

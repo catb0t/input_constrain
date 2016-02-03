@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
-from input_constrain import *
+import input_constrain
 
 def _until_demo() -> None:
     """demonstrate the until function"""
     print("get until what?")
-    char = read_single_keypress()
-    _ = sys.stdout.write(char + "\n")
-    sys.stdout.flush()
-    y = until(char)
+    char = input_constrain._read_keypress()
+    input_constrain._writer(char + "\n")
+    y = input_constrain.until(char)
     print("\n" + y)
 
 
@@ -23,15 +22,14 @@ def _thismany_demo() -> None:
         print("not a number, sorry")
         return
     print("getting", str(kps))
-    y = thismany(kps)
+    y = input_constrain.thismany(kps)
     print("\n" + y)
 
 
-def _can_you_vote() -> str:
+def _can_you_vote() -> None:
     """a practical example:
     test if a user can vote based purely on keypresses"""
-    _ = sys.stdout.write("can you vote? age : ")
-    sys.stdout.flush()
+    input_constrain._writer("can you vote? age : ")
     x = int("0" + until_not("0123456789"))
     if not x:
         print("\nsorry, age can only consist of digits.")
@@ -43,7 +41,7 @@ def _can_you_vote() -> str:
     )
 
 
-def _forth_syntax_test() -> str:
+def _forth_syntax_test() -> None:
     """
     in the programming language Forth,
     `function` definitons start at the beginning of a line with a `:` colon
@@ -53,14 +51,13 @@ def _forth_syntax_test() -> str:
     in a Forth REPL to compile statements specially;
     it's implemented in catb0t/microcat as well.
     """
-    sys.stdout.write("demo FORTH repl \n> ")
-    firstchar = read_single_keypress()
-    _ = sys.stdout.write(firstchar)
+    input_constrain._writer("demo FORTH repl \n> ")
+    firstchar = input_constrain._read_keypress()
+    input_constrain._writer(firstchar)
     if firstchar != ":":
         return print("first char wasn't ':'")
-    defn = firstchar + until(";") + ";"
-    sys.stdout.write("\nrepl got:\n" + defn + "\n")
-    return
+    defn = firstchar + input_constrain.until(";") + ";"
+    input_constrain._writer("\nrepl got:\n" + defn + "\n")
 
 
 if __name__ == "__main__":

@@ -37,3 +37,5 @@
 * `_can_you_vote() -> None` — small demo of `until_not_multi()`
 
 * `_forth_syntax_test() -> None` — small practical demo of `until()`
+
+Thanks to [Dannno](http://codereview.stackexchange.com/users/47529/dannnno) and [his post](http://codereview.stackexchange.com/a/118726/87163) for making this module cool.
