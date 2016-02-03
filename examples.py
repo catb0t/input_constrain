@@ -42,20 +42,6 @@ def _can_you_vote() -> str:
         else "Sorry! you can't vote"
     )
 
-def _can_you_vote_2() -> str:
-    """revision of `can you vote?`,
-    using an input API that ignores, rather than breaks on, junk input"""
-    _ = sys.stdout.write("can you vote? age : ")
-    sys.stdout.flush()
-    x = int("0" + nobreak_strict("0123456789\n", 3))
-    if not x:
-        print("\nsorry, age can only consist of digits.")
-        return
-    print(
-        "\nyour age is", x, "\nYou can vote!"
-        if x >= 18
-        else "\nSorry! you can't vote"
-    )
 
 def _forth_syntax_test() -> str:
     """
