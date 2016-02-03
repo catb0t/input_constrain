@@ -14,6 +14,8 @@
 
 * `until_not(chars: string || list, count: int = -1) -> string` — get characters from stdin until any of `chars` is not read. if `count` is `-1`, then `sys.maxsize` chars will be read.
 
+* `pretty_press() -> string` — read a byte from stdin, and send it through the same processing as the other functions do — write it, if it's a backspace, then backspace, etc
+
 ## other parts of the module
 
 * class `_Getch`: determines system platform and calls one of `_GetchUnix` or `_GetchWindows` appropriately

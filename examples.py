@@ -1,7 +1,7 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
+
 import sys
 from input_constrain import *
-
 
 def _until_demo() -> None:
     """demonstrate the until function"""
@@ -30,7 +30,8 @@ def _thismany_demo() -> None:
 def _can_you_vote() -> str:
     """a practical example:
     test if a user can vote based purely on keypresses"""
-    print("can you vote? age : ", end="")
+    _ = sys.stdout.write("can you vote? age : ")
+    sys.stdout.flush()
     x = int("0" + until_not("0123456789"))
     if not x:
         print("\nsorry, age can only consist of digits.")
@@ -41,12 +42,26 @@ def _can_you_vote() -> str:
         else "Sorry! you can't vote"
     )
 
+def _can_you_vote_2() -> str:
+    """revision of `can you vote?`,
+    using an input API that ignores, rather than breaks on, junk input"""
+    _ = sys.stdout.write("can you vote? age : ")
+    sys.stdout.flush()
+    x = int("0" + nobreak_strict("0123456789\n", 3))
+    if not x:
+        print("\nsorry, age can only consist of digits.")
+        return
+    print(
+        "\nyour age is", x, "\nYou can vote!"
+        if x >= 18
+        else "\nSorry! you can't vote"
+    )
 
 def _forth_syntax_test() -> str:
     """
     in the programming language Forth,
     `function` definitons start at the beginning of a line with a `:` colon
-    and go until the next semicolon on the end of that line.
+    and go until the next semicolon.
 
     this is an example of how this module can be used
     in a Forth REPL to compile statements specially;
@@ -61,5 +76,7 @@ def _forth_syntax_test() -> str:
     sys.stdout.write("\nrepl got:\n" + defn + "\n")
     return
 
+
 if __name__ == "__main__":
-    _forth_syntax_test()
+    #_forth_syntax_test()
+    _can_you_vote_2()

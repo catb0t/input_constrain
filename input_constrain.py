@@ -39,22 +39,24 @@ class _GetchWindows:
         return msvcrt.getch()
 
 
+parsenum = (lambda num:
+            (sys.maxsize if 0 > num else num))
+
+
 def read_single_keypress():
-    """interface for _Getch"""
+    """interface for _Getch that interprets backspace and DEL properly"""
     getch = _Getch()
     x = getch.__call__()
     ox = ord(x)
     if ox == 27 or ox == 127:
         sys.stdout.write(chr(8))
-        sys.stdout.write(chr(32))
+        sys.stdout.write(chr(32))  # hacky? indeed. does it *work*? hell yeah!
         sys.stdout.write(chr(8))
 
     elif ox == 3: raise KeyboardInterrupt
     elif ox == 4: raise EOFError
     return x
 
-parsenum = (lambda num:
-                (sys.maxsize if 0 > num else num))
 
 def nbsp(x, y):
     """append x to y as long as x is not DEL or backspace"""
@@ -97,7 +99,8 @@ def until(chars, count=-1) -> str:
 
 
 def until_not(chars, count=-1) -> str:
-    """read stdin until any of chars stop being read"""
+    """read stdin until any of chars stop being read,
+    or until count chars have been read; whichever comes first"""
     y = []
     chars = list(chars)
     count = parsenum(count)
@@ -109,3 +112,11 @@ def until_not(chars, count=-1) -> str:
             break
         y = nbsp(i, y)
     return "".join(y)
+
+
+def pretty_press() -> str:
+    """literally just read any fancy char from stdin let caller do whatever"""
+    i = read_single_keypress()
+    _ = sys.stdout.write(i)
+    sys.stdout.flush()
+    return nbsp(i, y)
