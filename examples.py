@@ -64,5 +64,4 @@ def _forth_syntax_test() -> str:
 
 
 if __name__ == "__main__":
-    #_forth_syntax_test()
-    _can_you_vote_2()
+    _forth_syntax_test()
