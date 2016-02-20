@@ -29,22 +29,31 @@ def parsenum(num):
 CHAR_INT = chr(3)
 CHAR_EOF = chr(4)
 CHAR_BKS = chr(8)
+CHAR_LFD = chr(10)
+CHAR_CRR = chr(13)
 CHAR_ESC = chr(27)
 CHAR_SPC = chr(32)
 CHAR_DEL = chr(127)
 
+BYTE_NEWL = "\n"
 
-def _read_keypress():
+def _read_keypress(raw=False):
     """interface for _Getch that interprets backspace and DEL properly"""
     c = _Getch()
 
     if c in (CHAR_BKS, CHAR_DEL, CHAR_ESC):
-        sys.stdout.write(CHAR_BKS)
-        sys.stdout.write(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
-        sys.stdout.write(CHAR_BKS)
+        _writer(CHAR_BKS)
+        _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
+        _writer(CHAR_BKS)
 
-    elif c == CHAR_INT: raise KeyboardInterrupt
-    elif c == CHAR_EOF: raise EOFError
+    elif c in (CHAR_CRR, CHAR_LFD):
+        _writer(CHAR_LFD if system == "Windows" else "")
+        _writer(CHAR_CRR)
+        return BYTE_NEWL
+
+    if not raw:
+        if c == CHAR_INT: raise KeyboardInterrupt
+        if c == CHAR_EOF: raise EOFError
 
     return c
 
@@ -62,6 +71,7 @@ def _nbsp(x, y):
 
 
 def _writer(i):
+    """write a string to stdout and flush. should be used by all stdout-writing"""
     sys.stdout.write(i)
     sys.stdout.flush()
 
@@ -84,10 +94,10 @@ def thismany(count=-1) -> str:
     return "".join(y)
 
 
-def _until_condition(chars, condition, count) -> str:
+def _until_condition(chars, condition, count, raw=False) -> str:
     y = []
     while len(y) <= count:
-        i = _read_keypress()
+        i = _read_keypress(raw)
         _writer(i)
         if condition(i, chars):
             break
@@ -95,19 +105,19 @@ def _until_condition(chars, condition, count) -> str:
     return "".join(y)
 
 
-def until(chars, count=-1) -> str:
+def until(chars, count=-1, raw=False) -> str:
     """get chars of stdin until any of chars is read,
     or until count chars have been read, whichever comes first"""
 
     return _until_condition(
-        chars, lambda i, chars: i in chars, parsenum(count)
+        chars, lambda i, chars: i in chars, parsenum(count), raw
     )
 
 
-def until_not(chars, count=-1) -> str:
+def until_not(chars, count=-1, raw=False) -> str:
     """read stdin until any of chars stop being read,
     or until count chars have been read; whichever comes first"""
 
     return _until_condition(
-        chars, lambda i, chars: i not in chars, parsenum(count)
+        chars, lambda i, chars: i not in chars, parsenum(count), raw
     )

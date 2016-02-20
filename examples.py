@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 
 import sys
+import string
 import input_constrain
 
+
 def _until_demo() -> None:
-    """demonstrate the until function"""
+    """
+    demonstrate the until function
+    """
+
     print("get until what?")
     char = input_constrain._read_keypress()
     input_constrain._writer(char + "\n")
@@ -13,7 +18,10 @@ def _until_demo() -> None:
 
 
 def _thismany_demo() -> None:
-    """demonstrate the thismany function"""
+    """
+    demonstrate the thismany function
+    """
+
     print("get how many chars?")
     kps = input()
     try:
@@ -27,8 +35,11 @@ def _thismany_demo() -> None:
 
 
 def _can_you_vote() -> None:
-    """a practical example:
-    test if a user can vote based purely on keypresses"""
+    """
+    a practical example:
+    test if a user can vote based purely on keypresses
+    """
+
     input_constrain._writer("can you vote? age : ")
     x = int("0" + until_not("0123456789"))
     if not x:
@@ -51,14 +62,25 @@ def _forth_syntax_test() -> None:
     in a Forth REPL to compile statements specially;
     it's implemented in catb0t/microcat as well.
     """
+
     input_constrain._writer("demo FORTH repl \n> ")
     firstchar = input_constrain._read_keypress()
     input_constrain._writer(firstchar)
     if firstchar != ":":
-        return print("first char wasn't ':'")
+        return print("\nreturned because first char wasn't ':'")
     defn = firstchar + input_constrain.until(";") + ";"
     input_constrain._writer("\nrepl got:\n" + defn + "\n")
 
 
+def _get_paragraphs():
+    ALLOWED_CHARS = string.printable
+    print("\nPress CTRL-C or CTRL-D to stop reading.")
+    try:
+        textwriterCommand = input_constrain.until_not(ALLOWED_CHARS, count=500, raw=True)
+    except (EOFError, KeyboardInterrupt):
+        pass
+    input_constrain._writer("\n\n")
+    return input_constrain._writer("you typed:" + textwriterCommand)
+
 if __name__ == "__main__":
-    _forth_syntax_test()
+    _get_paragraphs()

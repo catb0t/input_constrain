@@ -18,9 +18,9 @@
 
 ## other parts of the module
 
-* class `_Getch`: determines system platform and calls one of `_GetchUnix` or `_GetchWindows` appropriately
+* class `_Getch`: determines system platform and calls one of `_GetchUnix` or `_GetchWindows` appropriately<br>**call this if you want to read any raw keypress, that is, '\x04' for EOF**
 
-* class `_GetchUnix`: get a raw character from stdin, on any *nx box
+* class `_GetchUnix`: get a raw character from stdin, on any \*nx box
 
 * class `_GetchWindows`: get a raw character from stdin, on any Windows box
 
@@ -34,8 +34,8 @@
 
 * `_thismany_demo() -> None` — small demo of `thismany()`
 
-* `_can_you_vote() -> None` — small demo of `until_not_multi()`
+* `_can_you_vote() -> None` — small demo of `until_not()`
 
 * `_forth_syntax_test() -> None` — small practical demo of `until()`
 
-Thanks to [Dannno](http://codereview.stackexchange.com/users/47529/dannnno) and [his post](http://codereview.stackexchange.com/a/118726/87163) for making this module cool.
+Thanks to [Dannno](http://codereview.stackexchange.com/users/47529/dannnno) and [their post](http://codereview.stackexchange.com/a/118726/87163) for making this module cool.
