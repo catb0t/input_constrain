@@ -38,4 +38,6 @@
 
 * `_forth_syntax_test() -> None` — small practical demo of `until()`
 
+* `_get_paragraphs() -> None` — small text editor thing, demoing `raw` and `count`
+
 Thanks to [Dannno](http://codereview.stackexchange.com/users/47529/dannnno) and [their post](http://codereview.stackexchange.com/a/118726/87163) for making this module cool.

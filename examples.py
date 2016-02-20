@@ -5,7 +5,7 @@ import string
 import input_constrain
 
 
-def _until_demo() -> None:
+def _until_demo():
     """
     demonstrate the until function
     """
@@ -17,7 +17,7 @@ def _until_demo() -> None:
     print("\n" + y)
 
 
-def _thismany_demo() -> None:
+def _thismany_demo():
     """
     demonstrate the thismany function
     """
@@ -34,7 +34,7 @@ def _thismany_demo() -> None:
     print("\n" + y)
 
 
-def _can_you_vote() -> None:
+def _can_you_vote():
     """
     a practical example:
     test if a user can vote based purely on keypresses
@@ -52,7 +52,7 @@ def _can_you_vote() -> None:
     )
 
 
-def _forth_syntax_test() -> None:
+def _forth_syntax_test():
     """
     in the programming language Forth,
     `function` definitons start at the beginning of a line with a `:` colon
@@ -67,18 +67,16 @@ def _forth_syntax_test() -> None:
     firstchar = input_constrain._read_keypress()
     input_constrain._writer(firstchar)
     if firstchar != ":":
-        return print("\nreturned because first char wasn't ':'")
+        print("\nreturned because first char wasn't ':'")
+        return
     defn = firstchar + input_constrain.until(";") + ";"
     input_constrain._writer("\nrepl got:\n" + defn + "\n")
 
 
 def _get_paragraphs():
-    ALLOWED_CHARS = string.printable
+    from string import printable as ALLOWED_CHARS
     print("\nPress CTRL-C or CTRL-D to stop reading.")
-    try:
-        textwriterCommand = input_constrain.until_not(ALLOWED_CHARS, count=500, raw=True)
-    except (EOFError, KeyboardInterrupt):
-        pass
+    textwriterCommand = input_constrain.until_not(ALLOWED_CHARS, count=500, raw=True)
     input_constrain._writer("\n\n")
     return input_constrain._writer("you typed:" + textwriterCommand)
 

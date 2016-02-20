@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+#import whereami
 from platform import system
 
 if system == "Windows":
@@ -22,6 +23,7 @@ else:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
             return ch
 
+__all__ = [eval(i) for i in list(globals().keys())]
 
 def parsenum(num):
     return sys.maxsize if 0 > num else num
@@ -35,13 +37,19 @@ CHAR_ESC = chr(27)
 CHAR_SPC = chr(32)
 CHAR_DEL = chr(127)
 
+UP    = chr(65)
+DOWN  = chr(66)
+LEFT  = chr(67)
+RIGHT = chr(68)
+
 BYTE_NEWL = "\n"
+
 
 def _read_keypress(raw=False):
     """interface for _Getch that interprets backspace and DEL properly"""
     c = _Getch()
 
-    if c in (CHAR_BKS, CHAR_DEL, CHAR_ESC):
+    if c in (CHAR_BKS, CHAR_DEL):
         _writer(CHAR_BKS)
         _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
         _writer(CHAR_BKS)
@@ -54,6 +62,11 @@ def _read_keypress(raw=False):
     if not raw:
         if c == CHAR_INT: raise KeyboardInterrupt
         if c == CHAR_EOF: raise EOFError
+
+        if c == CHAR_ESC:
+            d, e = _Getch(), _Getch()
+            if d == "[" and e in (UP, DOWN, LEFT, RIGHT):
+                pass
 
     return c
 
@@ -76,14 +89,14 @@ def _writer(i):
     sys.stdout.flush()
 
 
-def pretty_press() -> str:
+def pretty_press():
     """literally just read any fancy char from stdin let caller do whatever"""
     i = _read_keypress()
     _writer(i)
     return _nbsp(i, y)
 
 
-def thismany(count=-1) -> str:
+def thismany(count=-1):
     """get exactly count chars of stdin"""
     y = []
     count = parsenum(count)
@@ -94,7 +107,7 @@ def thismany(count=-1) -> str:
     return "".join(y)
 
 
-def _until_condition(chars, condition, count, raw=False) -> str:
+def _until_condition(chars, condition, count, raw=False):
     y = []
     while len(y) <= count:
         i = _read_keypress(raw)
@@ -105,7 +118,7 @@ def _until_condition(chars, condition, count, raw=False) -> str:
     return "".join(y)
 
 
-def until(chars, count=-1, raw=False) -> str:
+def until(chars, count=-1, raw=False):
     """get chars of stdin until any of chars is read,
     or until count chars have been read, whichever comes first"""
 
@@ -114,7 +127,7 @@ def until(chars, count=-1, raw=False) -> str:
     )
 
 
-def until_not(chars, count=-1, raw=False) -> str:
+def until_not(chars, count=-1, raw=False):
     """read stdin until any of chars stop being read,
     or until count chars have been read; whichever comes first"""
 
