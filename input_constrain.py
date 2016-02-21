@@ -15,29 +15,31 @@ else:
     import tty, termios
 
     def _Getch():
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-            return ch
-
+        if sys.stdin.isatty():
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(sys.stdin.fileno())
+                ch = sys.stdin.read(1)
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                return ch
+        else:
+            return sys.stdin.read(1)
 
 def parsenum(num):
-    return sys.maxsize if 0 > num else num
+    num = int(num)
+    return sys.maxsize if num < 0 else num
 
 CHAR_INT = chr(3)
 CHAR_EOF = chr(4)
+CHAR_BEL = chr(7)
 CHAR_BKS = chr(8)
 CHAR_LFD = chr(10)
 CHAR_CRR = chr(13)
 CHAR_ESC = chr(27)
 CHAR_SPC = chr(32)
 CHAR_DEL = chr(127)
-
-BYTE_NEWL = "\n"
 
 CONDS = [
     (lambda i, chars: i in chars),
@@ -50,7 +52,7 @@ def _read_keypress(raw=False):
     """interface for _Getch that interprets backspace and DEL properly"""
     c = _Getch()
 
-    if c in (CHAR_BKS, CHAR_DEL):
+    if c in (CHAR_BKS, CHAR_DEL, CHAR_ESC):
         _writer(CHAR_BKS)
         _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
         _writer(CHAR_BKS)
@@ -58,7 +60,7 @@ def _read_keypress(raw=False):
     elif c in (CHAR_CRR, CHAR_LFD):
         _writer(CHAR_LFD if system == "Windows" else "")
         _writer(CHAR_CRR)
-        return BYTE_NEWL
+        return CHAR_LFD
 
     if not raw:
         if c == CHAR_INT: raise KeyboardInterrupt
@@ -68,21 +70,24 @@ def _read_keypress(raw=False):
             d, e = _Getch(), _Getch()
             if d == "[" and e in xyctl.DIRS:
                 adj_x, adj_y = xyctl.DIRCALC[e]
-                _writer("going " + str(e))
+                _writer("going " + str(adj_x) + str(adj_y))
                 #xyctl.adjust(adj_x, adj_y)
 
     return c
 
 
-def _writer(i):
+def _writer(*args):
     """write a string to stdout and flush. should be used by all stdout-writing"""
-    sys.stdout.write(i)
+    if not args:
+        raise TypeError("_writer requires at least one argument")
+    args = " ".join(str(i) for i in args).strip()
+    sys.stdout.write(args)
     sys.stdout.flush()
 
 
 def _nbsp(x, y):
     """append x to y as long as x is not DEL or backspace"""
-    if x in (CHAR_DEL, CHAR_BKS):
+    if x in (CHAR_DEL, CHAR_BKS, CHAR_ESC):
         try:
             y.pop()
         except IndexError:
@@ -217,3 +222,5 @@ class xyctl:
         new_x, new_y = xyctl._matrix_calc(adj_x, adj_y)
         xyctl.setter(new_x, new_y)
 
+if __name__ == "__main__":
+    print(hex(ord(_read_keypress())))

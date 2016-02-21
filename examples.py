@@ -41,12 +41,12 @@ def _can_you_vote():
     """
 
     input_constrain._writer("can you vote? age : ")
-    x = int("0" + until_not("0123456789"))
+    x = int("0" + input_constrain.ignore_not("0123456789", "0123456789", end_cond=True, count=2))
     if not x:
         print("\nsorry, age can only consist of digits.")
         return
     print(
-        "your age is", x, "\nYou can vote!"
+        "\nyour age is", x, "\nYou can vote!"
         if x >= 18
         else "Sorry! you can't vote"
     )
@@ -79,6 +79,3 @@ def _get_paragraphs():
     textwriterCommand = input_constrain.until_not(ALLOWED_CHARS, count=500, raw=True)
     input_constrain._writer("\n\n")
     return input_constrain._writer("you typed:" + textwriterCommand)
-
-if __name__ == "__main__":
-    _forth_syntax_test()
