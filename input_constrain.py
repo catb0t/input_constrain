@@ -3,7 +3,7 @@
 import sys
 from platform import system
 
-if system == "Windows":
+if system() == "Windows":
     import msvcrt
     import colorama
     colorama.init()
