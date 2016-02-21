@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
-#import whereami
 from platform import system
 
 if system == "Windows":
     import msvcrt
+    import colorama
+    colorama.init()
 
     def _Getch():
         return msvcrt.getch()
@@ -23,7 +24,6 @@ else:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
             return ch
 
-__all__ = [eval(i) for i in list(globals().keys())]
 
 def parsenum(num):
     return sys.maxsize if 0 > num else num
@@ -37,12 +37,13 @@ CHAR_ESC = chr(27)
 CHAR_SPC = chr(32)
 CHAR_DEL = chr(127)
 
-UP    = chr(65)
-DOWN  = chr(66)
-LEFT  = chr(67)
-RIGHT = chr(68)
-
 BYTE_NEWL = "\n"
+
+CONDS = [
+    (lambda i, chars: i in chars),
+    (lambda i, chars: i not in chars),
+    (lambda *args, **kwargs: False),
+]
 
 
 def _read_keypress(raw=False):
@@ -65,10 +66,18 @@ def _read_keypress(raw=False):
 
         if c == CHAR_ESC:
             d, e = _Getch(), _Getch()
-            if d == "[" and e in (UP, DOWN, LEFT, RIGHT):
-                pass
+            if d == "[" and e in xyctl.DIRS:
+                adj_x, adj_y = xyctl.DIRCALC[e]
+                _writer("going " + str(e))
+                #xyctl.adjust(adj_x, adj_y)
 
     return c
+
+
+def _writer(i):
+    """write a string to stdout and flush. should be used by all stdout-writing"""
+    sys.stdout.write(i)
+    sys.stdout.flush()
 
 
 def _nbsp(x, y):
@@ -83,12 +92,6 @@ def _nbsp(x, y):
     return y
 
 
-def _writer(i):
-    """write a string to stdout and flush. should be used by all stdout-writing"""
-    sys.stdout.write(i)
-    sys.stdout.flush()
-
-
 def pretty_press():
     """literally just read any fancy char from stdin let caller do whatever"""
     i = _read_keypress()
@@ -96,34 +99,46 @@ def pretty_press():
     return _nbsp(i, y)
 
 
-def thismany(count=-1):
-    """get exactly count chars of stdin"""
+def _do_condition(
+        end_chars,
+        end_condition,
+        count,
+        ignore_chars=(),
+        ignore_condition=CONDS[True + 1],
+        raw=False
+    ):
     y = []
     count = parsenum(count)
     while len(y) <= count:
-        i = _read_keypress()
-        _writer(i)
-        y = _nbsp(i, y)
-    return "".join(y)
-
-
-def _until_condition(chars, condition, count, raw=False):
-    y = []
-    while len(y) <= count:
         i = _read_keypress(raw)
-        _writer(i)
-        if condition(i, chars):
+        if not ignore_condition(i, ignore_chars):
+            _writer(i)
+        if end_condition(i, end_chars):
             break
-        y = _nbsp(i, y)
+        if not ignore_condition(i, ignore_chars):
+            y = _nbsp(i, y)
     return "".join(y)
 
 
-def until(chars, count=-1, raw=False):
+def thismany(count, raw=False):
+    """read exactly count chars"""
+
+    return _do_condition(
+        "",
+        CONDS[True + 1],  # more than true == never expires :D
+        count,
+        raw=raw
+    )
+
+def until(chars, invert=False, count=-1, raw=False):
     """get chars of stdin until any of chars is read,
     or until count chars have been read, whichever comes first"""
 
-    return _until_condition(
-        chars, lambda i, chars: i in chars, parsenum(count), raw
+    return _do_condition(
+        chars,
+        CONDS[invert],
+        count,
+        raw=raw
     )
 
 
@@ -131,6 +146,74 @@ def until_not(chars, count=-1, raw=False):
     """read stdin until any of chars stop being read,
     or until count chars have been read; whichever comes first"""
 
-    return _until_condition(
-        chars, lambda i, chars: i not in chars, parsenum(count), raw
+    return until(chars, invert=True, count=count, raw=raw)
+
+
+def ignore(ignore_these, end_on, end_cond=True, count=-1, raw=False, invert=False):
+    """ignore_these keypresses, and stop reading at end_on or count, whichever comes first"""
+
+    return _do_condition(
+        end_on,
+        CONDS[end_cond],
+        count,
+        ignore_chars=ignore_these,
+        ignore_condition=CONDS[invert],
+        raw=raw
     )
+
+
+def ignore_not(ignore_these, end_on, end_cond=True, count=-1, raw=False):
+    """ignore everything that isn't these keypresses and stop reading at end_on or count, whichever comes first"""
+
+    return ignore(ignore_these, end_on, end_cond=end_cond, count=count, raw=raw, invert=True)
+
+
+class xyctl:
+    UP = chr(65)
+    DN = chr(66)
+    LT = chr(67)
+    RT = chr(68)
+
+    DIRS = frozenset([UP, DN, LT, RT])
+
+    DIRCALC = {
+        UP: (0, 1),
+        DN: (0, -1),
+        LT: (-1, 0),
+        RT: (1, 0),
+    }
+
+    def _terminal_size():
+        import fcntl, struct
+        h, w, hp, wp = struct.unpack('HHHH',
+            fcntl.ioctl(0, termios.TIOCGWINSZ,
+            struct.pack('HHHH', 0, 0, 0, 0)))
+        return w, h, w * h
+
+    def _matrix_calc(adj_x, adj_y):
+        cur_x, cur_y = xyctl.getter()
+        new_x, new_y = (
+            (cur_x + adj_x),
+            (cur_y + adj_y)
+        )
+
+        if (new_x * new_y) < (xyctl._terminal_size()[2]):
+            return new_x, new_y
+        else:
+            _writer(CHAR_BEL)
+
+    def getter():
+        _writer(CHAR_ESC + "[6n")
+        pos = until("R", raw=True)
+        _writer(CHAR_CRR + CHAR_SPC * (len(pos) + 1) + CHAR_CRR)
+        pos = pos[2:].split(";")
+        pos[0], pos[1] = int(pos[1]), int(pos[0])
+        return pos
+
+    def setter(new_x, new_y):
+        _writer(CHAR_ESC + "[{};{}H".format(new_x, new_y))
+
+    def adjust(adj_x, adj_y):
+        new_x, new_y = xyctl._matrix_calc(adj_x, adj_y)
+        xyctl.setter(new_x, new_y)
+

@@ -81,4 +81,4 @@ def _get_paragraphs():
     return input_constrain._writer("you typed:" + textwriterCommand)
 
 if __name__ == "__main__":
-    _get_paragraphs()
+    _forth_syntax_test()
