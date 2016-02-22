@@ -9,18 +9,28 @@ if system() == "Windows":
     try:
         colorama.init()
     except AttributeError:
-        print("""
+        print(
+        """
         you must install colorama to use this module on windows
         do this by:
         $ cd colorama
-        $ python setup.py install""")
+        $ python setup.py install
+        """
+        )
         exit(2)
+    else:
+        def _Getch():
+            return msvcrt.getch()
 
-    def _Getch():
-        return msvcrt.getch()
+        def _Kbhit():
+            y = []
+            while msvcrt.kbhit():
+                y.append(msvcrt.getch())
+            return "".join(y)
 
 else:
-    import tty, termios
+    import tty, termios, fcntl
+    from os import O_NONBLOCK
 
     def _Getch():
         if sys.stdin.isatty():
@@ -35,6 +45,17 @@ else:
         else:
             return sys.stdin.read(1)
 
+    def _Kbhit():
+        fd = sys.stdin.fileno()
+        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, fl | O_NONBLOCK)
+        try:
+            chars = sys.stdin.read(10)
+        except:
+            chars = ""
+        finally:
+            fcntl.fcntl(fd, fcntl.F_SETFL, fl)
+            return chars
 
 def parsenum(num):
     num = int(num)
@@ -62,24 +83,22 @@ def _read_keypress(raw=False):
     """interface for _Getch that interprets backspace and DEL properly"""
     c = _Getch()
 
-    if c in (CHAR_BKS, CHAR_DEL, CHAR_ESC):
-        _writer(CHAR_BKS)
-        _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
-        _writer(CHAR_BKS)
-
-    elif c in (CHAR_CRR, CHAR_LFD):
-        _writer(CHAR_LFD if system == "Windows" else "")
-        _writer(CHAR_CRR)
-        return CHAR_LFD
-
     if not raw:
-        if c == CHAR_INT:
-            raise KeyboardInterrupt
-        if c == CHAR_EOF:
-            raise EOFError
+        if c == CHAR_INT: raise KeyboardInterrupt
+        if c == CHAR_EOF: raise EOFError
 
-        if c == CHAR_ESC:
-            d, e = _Getch(), _Getch()
+        if c in (CHAR_BKS, CHAR_DEL):
+            _writer(CHAR_BKS)
+            _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
+
+        elif c in (CHAR_CRR, CHAR_LFD):
+            _writer(CHAR_LFD if system() == "Windows" else "")
+            _writer(CHAR_CRR)
+            return CHAR_CRR
+
+        elif c == CHAR_ESC:
+            more = _Kbhit()
+            return more
             #if d == "[" and e in xyctl.DIRS:
             #    adj_x, adj_y = xyctl.DIRCALC[e]
             #    _writer("going " + str(adj_x) + str(adj_y))
