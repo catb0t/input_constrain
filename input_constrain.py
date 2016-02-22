@@ -6,7 +6,15 @@ from platform import system
 if system() == "Windows":
     import msvcrt
     import colorama
-    colorama.init()
+    try:
+        colorama.init()
+    except AttributeError:
+        print("""
+        you must install colorama to use this module on windows
+        do this by:
+        $ cd colorama
+        $ python setup.py install""")
+        exit(2)
 
     def _Getch():
         return msvcrt.getch()
@@ -27,10 +35,12 @@ else:
         else:
             return sys.stdin.read(1)
 
+
 def parsenum(num):
     num = int(num)
     return sys.maxsize if num < 0 else num
 
+CHAR_NUL = chr(0)
 CHAR_INT = chr(3)
 CHAR_EOF = chr(4)
 CHAR_BEL = chr(7)
@@ -63,21 +73,26 @@ def _read_keypress(raw=False):
         return CHAR_LFD
 
     if not raw:
-        if c == CHAR_INT: raise KeyboardInterrupt
-        if c == CHAR_EOF: raise EOFError
+        if c == CHAR_INT:
+            raise KeyboardInterrupt
+        if c == CHAR_EOF:
+            raise EOFError
 
         if c == CHAR_ESC:
             d, e = _Getch(), _Getch()
-            if d == "[" and e in xyctl.DIRS:
-                adj_x, adj_y = xyctl.DIRCALC[e]
-                _writer("going " + str(adj_x) + str(adj_y))
-                #xyctl.adjust(adj_x, adj_y)
+            #if d == "[" and e in xyctl.DIRS:
+            #    adj_x, adj_y = xyctl.DIRCALC[e]
+            #    _writer("going " + str(adj_x) + str(adj_y))
+                # xyctl.adjust(adj_x, adj_y)
 
     return c
 
 
 def _writer(*args):
-    """write a string to stdout and flush. should be used by all stdout-writing"""
+    """
+    write a string to stdout and flush.
+    should be used by all stdout-writing
+    """
     if not args:
         raise TypeError("_writer requires at least one argument")
     args = " ".join(str(i) for i in args).strip()
@@ -86,7 +101,9 @@ def _writer(*args):
 
 
 def _nbsp(x, y):
-    """append x to y as long as x is not DEL or backspace"""
+    """
+    append x to y as long as x is not DEL or backspace
+    """
     if x in (CHAR_DEL, CHAR_BKS, CHAR_ESC):
         try:
             y.pop()
@@ -98,7 +115,10 @@ def _nbsp(x, y):
 
 
 def pretty_press():
-    """literally just read any fancy char from stdin let caller do whatever"""
+    """
+    literally just read any fancy char from stdin let caller do whatever
+    """
+    y = []
     i = _read_keypress()
     _writer(i)
     return _nbsp(i, y)
@@ -135,6 +155,7 @@ def thismany(count, raw=False):
         raw=raw
     )
 
+
 def until(chars, invert=False, count=-1, raw=False):
     """get chars of stdin until any of chars is read,
     or until count chars have been read, whichever comes first"""
@@ -151,11 +172,24 @@ def until_not(chars, count=-1, raw=False):
     """read stdin until any of chars stop being read,
     or until count chars have been read; whichever comes first"""
 
-    return until(chars, invert=True, count=count, raw=raw)
+    return until(
+        chars,
+        invert=True,
+        count=count,
+        raw=raw
+    )
 
 
-def ignore(ignore_these, end_on, end_cond=True, count=-1, raw=False, invert=False):
-    """ignore_these keypresses, and stop reading at end_on or count, whichever comes first"""
+def ignore(
+        ignore_these,
+        end_on,
+        end_cond=True,
+        count=-1,
+        raw=False,
+        invert=False
+    ):
+    """ignore_these keypresses, and stop reading at end_on or count,
+    whichever comes first"""
 
     return _do_condition(
         end_on,
@@ -167,10 +201,24 @@ def ignore(ignore_these, end_on, end_cond=True, count=-1, raw=False, invert=Fals
     )
 
 
-def ignore_not(ignore_these, end_on, end_cond=True, count=-1, raw=False):
-    """ignore everything that isn't these keypresses and stop reading at end_on or count, whichever comes first"""
+def ignore_not(
+        ignore_these,
+        end_on,
+        end_cond=True,
+        count=-1,
+        raw=False
+    ):
+    """ignore everything that isn't these keypresses
+    and stop reading at end_on or count, whichever comes first"""
 
-    return ignore(ignore_these, end_on, end_cond=end_cond, count=count, raw=raw, invert=True)
+    return ignore(
+        ignore_these,
+        end_on,
+        end_cond=end_cond,
+        count=count,
+        raw=raw,
+        invert=True
+    )
 
 
 class xyctl:
@@ -210,7 +258,7 @@ class xyctl:
     def getter():
         _writer(CHAR_ESC + "[6n")
         pos = until("R", raw=True)
-        _writer(CHAR_CRR + CHAR_SPC * (len(pos) + 1) + CHAR_CRR)
+        _writer(CHAR_CRR + CHAR_NUL * (len(pos) + 1) + CHAR_CRR)
         pos = pos[2:].split(";")
         pos[0], pos[1] = int(pos[1]), int(pos[0])
         return pos
@@ -222,5 +270,5 @@ class xyctl:
         new_x, new_y = xyctl._matrix_calc(adj_x, adj_y)
         xyctl.setter(new_x, new_y)
 
-if __name__ == "__main__":
-    print(hex(ord(_read_keypress())))
+#if __name__ == "__main__":
+#    print(hex(ord(_read_keypress())))

@@ -2,17 +2,18 @@
 from sys import argv as _argv
 import input_constrain as _ic
 
-_p = print
+_p = _ic._writer
 
 def getch(*a):
-    print("getching")
     _p(ord(_ic._Getch()))
 
+
 def readkey(*a):
-    _p(_ic._read_keypress())
+    _p(ord(_ic._read_keypress()))
+
 
 def raw_readkey(*a):
-    _p(_ic._read_keypress(raw=True))
+    _p(ord(_ic._read_keypress(raw=True)))
 
 def writer(*a):
     if a:
