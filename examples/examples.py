@@ -2,7 +2,7 @@
 
 import sys
 import string
-import input_constrain
+import pmlr
 
 
 def _until_demo():
@@ -11,9 +11,9 @@ def _until_demo():
     """
 
     print("get until what?")
-    char = input_constrain._read_keypress()
-    input_constrain._writer(char + "\n")
-    y = input_constrain.until(char)
+    char = pmlr._read_keypress()
+    pmlr._writer(char + "\n")
+    y = pmlr.until(char)
     print("\n" + y)
 
 
@@ -30,7 +30,7 @@ def _thismany_demo():
         print("not a number, sorry")
         return
     print("getting", str(kps))
-    y = input_constrain.thismany(kps)
+    y = pmlr.thismany(kps)
     print("\n" + y)
 
 
@@ -40,8 +40,8 @@ def _can_you_vote():
     test if a user can vote based purely on keypresses
     """
 
-    input_constrain._writer("can you vote? age : ")
-    x = int("0" + input_constrain.ignore_not("0123456789", "0123456789", end_cond=True, count=2))
+    pmlr._writer("can you vote? age : ")
+    x = int("0" + pmlr.ignore_not("0123456789", "0123456789", end_cond=True, count=2))
     if not x:
         print("\nsorry, age can only consist of digits.")
         return
@@ -63,19 +63,19 @@ def _forth_syntax_test():
     it's implemented in catb0t/microcat as well.
     """
 
-    input_constrain._writer("demo FORTH repl \n> ")
-    firstchar = input_constrain._read_keypress()
-    input_constrain._writer(firstchar)
+    pmlr._writer("demo FORTH repl \n> ")
+    firstchar = pmlr._read_keypress()
+    pmlr._writer(firstchar)
     if firstchar != ":":
         print("\nreturned because first char wasn't ':'")
         return
-    defn = firstchar + input_constrain.until(";") + ";"
-    input_constrain._writer("\nrepl got:\n" + defn + "\n")
+    defn = firstchar + pmlr.until(";") + ";"
+    pmlr._writer("\nrepl got:\n" + defn + "\n")
 
 
 def _get_paragraphs():
     from string import printable as ALLOWED_CHARS
     print("\nPress CTRL-C or CTRL-D to stop reading.")
-    textwriterCommand = input_constrain.until_not(ALLOWED_CHARS, count=500, raw=True)
-    input_constrain._writer("\n\n")
-    return input_constrain._writer("you typed:" + textwriterCommand)
+    textwriterCommand = pmlr.until_not(ALLOWED_CHARS, count=500, raw=True)
+    pmlr._writer("\n\n")
+    return pmlr._writer("you typed:" + textwriterCommand)

@@ -1,4 +1,4 @@
-# PiMPeR = poor man's python readline
+# PMLR = poor man's (python) libreadline
 
 #### a minimal, simplistic readline / curses in pure Python
 

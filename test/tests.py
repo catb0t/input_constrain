@@ -1,26 +1,44 @@
 #!/usr/bin/env python3
 import unittest
 import subprocess as sp
-from sys import executable as py, maxsize as mxsz
+from sys import executable as py, maxsize as MAXSIZE, version_info as VERINFO
+from os import getcwd
 
-import input_constrain
+TESTMOD_INFO = ("pmlr", getcwd() + "/../pmlr/pmlr/pmlr.py")
 
-TEST_HELP = "_tests_helper.py"
+TEST_HELP = getcwd() + "/../pmlr/test/_tests_helper.py"
+
+
+if VERINFO.major == 2:
+    import imp
+    pmlr = imp.load_source(*TESTMOD_INFO)
+
+elif VERINFO.major == 3:
+    if VERINFO.minor < 5:
+        from importlib.machinery import SourceFileLoader
+        pmlr = SourceFileLoader(*TESTMOD_INFO).load_module()
+
+    elif VERINFO.minor >= 5:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(*TESTMOD_INFO)
+        pmlr = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pmlr)
+
 
 class TestKPReader(unittest.TestCase):
 
     def test_parsenum(self):
         """test parsenum"""
-        nums = (-mxsz, -122, -1, 0, 8, 88, 888880, mxsz)
-        for idx, elem in enumerate(nums):
-            result = input_constrain.parsenum(elem)
-            expect = mxsz if elem < 0 else elem
+        nums = (-MAXSIZE, -122, -1, 0, 8, 88, 888880, MAXSIZE)
+        for elem in nums:
+            result = pmlr.parsenum(elem)
+            expect = MAXSIZE if elem < 0 else elem
             self.assertEqual(result, expect)
 
     def test_parsenum_complex(self):
         """test parsenum failure"""
         with self.assertRaises(TypeError):
-            input_constrain.parsenum(8j)
+            pmlr.parsenum(8j)
 
     def test_getch(self):
         """test getch (patience)"""

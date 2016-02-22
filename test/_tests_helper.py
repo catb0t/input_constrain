@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from sys import argv as _argv
-import input_constrain as _ic
+
+from tests import pmlr as _ic
 
 _p = _ic._writer
 

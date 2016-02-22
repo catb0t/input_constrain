@@ -7,7 +7,7 @@ SYSTEM = system()
 
 class _nt_reader():
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """reader on nt"""
         self.msvcrt = __import__("msvcrt")
         self.ctypes = __import__("ctypes")
@@ -38,7 +38,7 @@ class _nt_reader():
             y.append(self.msvcrt.getch())
         return "".join(y)
 
-    def term_size(self):
+    def term_size(self, details=False):
         """get terminal winsize on nt"""
         # https://gist.github.com/jtriley/1108174#file-terminalsize-py-L31
         # stdin handle is -10
@@ -59,10 +59,11 @@ class _nt_reader():
             ) = juicy_data
             sizex = right - left + 1
             sizey = bottom - top + 1
-            return sizex, sizey, sizex * sizey, juicy_data
+            ret = sizex, sizey, sizex * sizey, juicy_data
+            return ret if details else ret[:len(ret) - 1]
         else:
             raise ValueError(
-                "windll.kernel32.GetConsoleScreenBufferInfo is "
+                "ctypes.windll.kernel32.GetConsoleScreenBufferInfo: "
                 + repr(res)
             )
 
@@ -129,11 +130,69 @@ read_class = {
     _posix_reader  # default
 )
 
-reader = type("", (), dict())
+class xyctl_class(read_class):
+    UP = chr(65)
+    DN = chr(66)
+    LT = chr(67)
+    RT = chr(68)
+
+    DIRS = frozenset([UP, DN, LT, RT])  # membership
+
+    DIRCALC = {
+        UP: (0, 1),
+        DN: (0, -1),
+        LT: (-1, 0),
+        RT: (1, 0),
+    }
+
+    def __init__(self):
+        self.saved = []
+
+    def _abs_matrix_calc(adj_x, adj_y):
+        cur_x, cur_y = xyctl.getter()
+        new_x, new_y = (
+            (cur_x + adj_x),
+            (cur_y + adj_y)
+        )
+
+        if (new_x * new_y) < (self.term_size()[2]):
+            return new_x, new_y
+        else:
+            _writer(CHAR_BEL)
+            raise ValueError
+
+    def getter():
+        _writer(CHAR_ESC + "[6n")
+        pos = until("R", raw=True)
+        _writer(CHAR_CRR + CHAR_NUL * (len(pos) + 1) + CHAR_CRR)
+        pos = pos[2:].split(";")
+        pos[0], pos[1] = int(pos[1]), int(pos[0])
+        return pos
+
+    def absolute_setter(new_x, new_y):
+        _writer(CHAR_ESC + "[{};{}H".format(new_x, new_y))
+
+    def adjust_xy(adj_x, adj_y):
+        new_x, new_y = xyctl._abs_matrix_calc(adj_x, adj_y)
+        xyctl.absolute_setter(new_x, new_y)
+
+    def savepos():
+        coords = self.getter()
+        self.saved.append(coords)
+        return coords
+
+    def popsaved(idx=-1):
+        new = self.saved.pop(idx)
+        if new:
+            self.absolute_setter(*tuple(new))
+            return new
+
+
 
 def init(TERM_BUFSIZE=4096):
-    global reader
-    reader = read_class()
+    global reader, xyctl
+    reader = read_class(TERMCTL_SPECIAL_BUFSIZE=TERM_BUFSIZE)
+    xyctl  = xyctl_class()
 
 def parsenum(num):
     num = int(num)
@@ -157,12 +216,14 @@ CONDS = [
 ]
 
 
-def _read_keypress(raw=False):
+def readkey(raw=False):
     """interface for _Getch that interprets backspace and DEL properly"""
     c = _Getch()
 
     if raw:
         return c
+
+    # cooked
 
     if c == CHAR_INT: raise KeyboardInterrupt
     if c == CHAR_EOF: raise EOFError
@@ -189,12 +250,14 @@ def _read_keypress(raw=False):
 
     return c
 
+def raw_readkey():
+    """alias for readkey(raw=True)"""
+    return readkey(raw=True)
+
 
 def _writer(*args):
-    """
-    write a string to stdout and flush.
-    should be used by all stdout-writing
-    """
+    """write a string to stdout and flush.
+    should be used by all stdout-writing"""
     if not args:
         raise TypeError("_writer requires at least one argument")
     args = " ".join(str(i) for i in args).strip()
@@ -203,9 +266,7 @@ def _writer(*args):
 
 
 def _nbsp(x, y):
-    """
-    append x to y as long as x is not DEL or backspace
-    """
+    """append x to y as long as x is not DEL or backspace"""
     if x in (CHAR_DEL, CHAR_BKS, CHAR_ESC):
         try:
             y.pop()
@@ -216,13 +277,12 @@ def _nbsp(x, y):
     return y
 
 
-def pretty_press():
-    """
-    literally just read any fancy char from stdin let caller do whatever
-    """
+def pretty_press(raw=False):
+    """literally just read any fancy char from stdin let caller do whatever"""
     y = []
-    i = _read_keypress()
-    _writer(i)
+    i = readkey(raw=raw)
+    if (not raw) and (i not in (CHAR_BKS, CHAR_DEL)):
+        _writer(i)
     return _nbsp(i, y)
 
 
@@ -237,9 +297,10 @@ def _do_condition(
     y = []
     count = parsenum(count)
     while len(y) <= count:
-        i = _read_keypress(raw)
+        i = readkey(raw=raw)
         if not ignore_condition(i, ignore_chars):
-            _writer(i)
+            if (not raw) and (i not in (CHAR_BKS, CHAR_DEL)):
+                _writer(i)
         if end_condition(i, end_chars):
             break
         if not ignore_condition(i, ignore_chars):
@@ -323,48 +384,6 @@ def ignore_not(
     )
 
 
-class xyctl:
-    UP = chr(65)
-    DN = chr(66)
-    LT = chr(67)
-    RT = chr(68)
-
-    DIRS = frozenset([UP, DN, LT, RT])  # membership
-
-    DIRCALC = {
-        UP: (0, 1),
-        DN: (0, -1),
-        LT: (-1, 0),
-        RT: (1, 0),
-    }
-
-    def _matrix_calc(adj_x, adj_y):
-        cur_x, cur_y = xyctl.getter()
-        new_x, new_y = (
-            (cur_x + adj_x),
-            (cur_y + adj_y)
-        )
-
-        if (new_x * new_y) < (xyctl._terminal_size()[2]):
-            return new_x, new_y
-        else:
-            _writer(CHAR_BEL)
-            raise ValueError
-
-    def getter():
-        _writer(CHAR_ESC + "[6n")
-        pos = until("R", raw=True)
-        _writer(CHAR_CRR + CHAR_NUL * (len(pos) + 1) + CHAR_CRR)
-        pos = pos[2:].split(";")
-        pos[0], pos[1] = int(pos[1]), int(pos[0])
-        return pos
-
-    def absolute_setter(new_x, new_y):
-        _writer(CHAR_ESC + "[{};{}H".format(new_x, new_y))
-
-    def adjust_xy(adj_x, adj_y):
-        new_x, new_y = xyctl._matrix_calc(adj_x, adj_y)
-        xyctl.absolute_setter(new_x, new_y)
 
 #if __name__ == "__main__":
 #    print(hex(ord(_read_keypress())))
