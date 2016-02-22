@@ -1,61 +1,139 @@
 #!/usr/bin/env python3
 
 import sys
+import struct
 from platform import system
+SYSTEM = system()
 
-if system() == "Windows":
-    import msvcrt
-    import colorama
-    try:
-        colorama.init()
-    except AttributeError:
-        print(
-        """
-        you must install colorama to use this module on windows
-        do this by:
-        $ cd colorama
-        $ python setup.py install
-        """
-        )
-        exit(2)
-    else:
-        def _Getch():
-            return msvcrt.getch()
+class _nt_reader():
 
-        def _Kbhit():
-            y = []
-            while msvcrt.kbhit():
-                y.append(msvcrt.getch())
-            return "".join(y)
+    def __init__(self):
+        """reader on nt"""
+        self.msvcrt = __import__("msvcrt")
+        self.ctypes = __import__("ctypes")
+        try:
+            self.colorama  = __import__("colorama")
+            self.colorama.init()
+        except (AttributeError, ImportError):
+            print(
+            """
+            you must install colorama to use this module on windows
+            do this by:
+            $ cd colorama
+            $ python setup.py install
+            """
+            )
+            exit(2)
 
-else:
-    import tty, termios, fcntl
-    from os import O_NONBLOCK
+        self.NAME = "NT"
 
-    def _Getch():
-        if sys.stdin.isatty():
+    def getch(self):
+        """use msvcrt to get a char"""
+        return self.msvcrt.getch()
+
+    def kbhit(self):
+        """while buffer, pseudo-nonblocking read bytes from buffer using msvcrt"""
+        y = []
+        while self.msvcrt.kbhit():
+            y.append(self.msvcrt.getch())
+        return "".join(y)
+
+    def term_size(self):
+        """get terminal winsize on nt"""
+        # https://gist.github.com/jtriley/1108174#file-terminalsize-py-L31
+        # stdin handle is -10
+        # stdout handle is -11
+        # stderr handle is -12
+        h    = self.ctypes.windll.kernel32.GetStdHandle(-12)
+        csbi = self.ctypes.create_string_buffer(22)
+        res  = self.ctypes.windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
+        if res:
+            juicy_data = struct.unpack("hhhhHhhhhhh", csbi.raw)
+            (
+                bufx, bufy,
+                curx, cury,
+                wattr,
+                left, top,
+                right, bottom,
+                maxx, maxy
+            ) = juicy_data
+            sizex = right - left + 1
+            sizey = bottom - top + 1
+            return sizex, sizey, sizex * sizey, juicy_data
+        else:
+            raise ValueError(
+                "windll.kernel32.GetConsoleScreenBufferInfo is "
+                + repr(res)
+            )
+
+class _posix_reader():
+
+    def __init__(self, TERMCTL_SPECIAL_BUFSIZE=4096):
+        """reader on posix"""
+        self.tty     = __import__("tty")
+        self.termios = __import__("termios")
+        self.fcntl   = __import__("fcntl")
+
+        self.O_NONBLOCK = __import__("os").O_NONBLOCK
+
+        self.TERM_BUFSIZE = TERMCTL_SPECIAL_BUFSIZE
+
+        self.NAME = "POSIX"
+
+    def getch(self):
+        """use old fashioned termios to getch"""
+        if sys.stdin.isatty():  # fixes "Inappropriate ioctl for device"
             fd = sys.stdin.fileno()
-            old_settings = termios.tcgetattr(fd)
+            old_settings = self.termios.tcgetattr(fd)
             try:
-                tty.setraw(sys.stdin.fileno())
+                self.tty.setraw(sys.stdin.fileno())
                 ch = sys.stdin.read(1)
             finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                self.termios.tcsetattr(fd, self.termios.TCSADRAIN, old_settings)
                 return ch
         else:
             return sys.stdin.read(1)
 
-    def _Kbhit():
-        fd = sys.stdin.fileno()
-        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, fl | O_NONBLOCK)
-        try:
-            chars = sys.stdin.read(10)
-        except:
-            chars = ""
-        finally:
-            fcntl.fcntl(fd, fcntl.F_SETFL, fl)
-            return chars
+    def kbhit(self):
+        """read TERM_BUFSIZE of waiting keypresses"""
+        if sys.stdin.isatty():
+            fd = sys.stdin.fileno()
+            fl = self.fcntl.fcntl(fd, fcntl.F_GETFL)
+            self.fcntl.fcntl(fd, self.fcntl.F_SETFL, fl | self.O_NONBLOCK)
+            try:
+                # if nothing is waiting on sys.stdin, then TypeError
+                # because "can't concat NoneType and str"
+                chars = sys.stdin.read(self.TERM_BUFSIZE)
+            except TypeError:
+                chars = ""
+            finally:
+                self.fcntl.fcntl(fd, self.fcntl.F_SETFL, fl) # restore settings
+                return chars
+        else:
+            return sys.stdin.read(self.TERM_BUFSIZE)  # ???
+
+    def term_size(self):
+        """get terminal size on posix"""
+        h, w, hp, wp = struct.unpack(
+            'HHHH',
+            self.fcntl.ioctl(
+                0, self.termios.TIOCGWINSZ, struct.pack('HHHH', 0, 0, 0, 0)
+            )
+        )
+        return w, h, w * h
+
+read_class = {
+    "Windows": _nt_reader,
+}.get(
+    SYSTEM,
+    _posix_reader  # default
+)
+
+reader = type("", (), dict())
+
+def init(TERM_BUFSIZE=4096):
+    global reader
+    reader = read_class()
 
 def parsenum(num):
     num = int(num)
@@ -83,26 +161,31 @@ def _read_keypress(raw=False):
     """interface for _Getch that interprets backspace and DEL properly"""
     c = _Getch()
 
-    if not raw:
-        if c == CHAR_INT: raise KeyboardInterrupt
-        if c == CHAR_EOF: raise EOFError
+    if raw:
+        return c
 
-        if c in (CHAR_BKS, CHAR_DEL):
-            _writer(CHAR_BKS)
-            _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
+    if c == CHAR_INT: raise KeyboardInterrupt
+    if c == CHAR_EOF: raise EOFError
 
-        elif c in (CHAR_CRR, CHAR_LFD):
-            _writer(CHAR_LFD if system() == "Windows" else "")
-            _writer(CHAR_CRR)
-            return CHAR_CRR
+    if c in (CHAR_BKS, CHAR_DEL):
+        _writer(CHAR_BKS)
+        _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
 
-        elif c == CHAR_ESC:
-            more = _Kbhit()
-            return more
-            #if d == "[" and e in xyctl.DIRS:
-            #    adj_x, adj_y = xyctl.DIRCALC[e]
-            #    _writer("going " + str(adj_x) + str(adj_y))
-                # xyctl.adjust(adj_x, adj_y)
+    elif c in (CHAR_CRR, CHAR_LFD):
+        _writer(CHAR_CRR if SYSTEM == "Windows" else "")
+        _writer(CHAR_LFD)
+        return CHAR_LFD
+
+    elif c == CHAR_ESC:
+        more = _Kbhit()
+        if more[0] == "[":
+            sp = more[1:]
+            if sp in xyctl.DIRS:
+                ...
+        #if d == "[" and e in xyctl.DIRS:
+        #    adj_x, adj_y = xyctl.DIRCALC[e]
+        #    _writer("going " + str(adj_x) + str(adj_y))
+            # xyctl.adjust(adj_x, adj_y)
 
     return c
 
@@ -246,7 +329,7 @@ class xyctl:
     LT = chr(67)
     RT = chr(68)
 
-    DIRS = frozenset([UP, DN, LT, RT])
+    DIRS = frozenset([UP, DN, LT, RT])  # membership
 
     DIRCALC = {
         UP: (0, 1),
@@ -254,13 +337,6 @@ class xyctl:
         LT: (-1, 0),
         RT: (1, 0),
     }
-
-    def _terminal_size():
-        import fcntl, struct
-        h, w, hp, wp = struct.unpack('HHHH',
-            fcntl.ioctl(0, termios.TIOCGWINSZ,
-            struct.pack('HHHH', 0, 0, 0, 0)))
-        return w, h, w * h
 
     def _matrix_calc(adj_x, adj_y):
         cur_x, cur_y = xyctl.getter()
@@ -273,6 +349,7 @@ class xyctl:
             return new_x, new_y
         else:
             _writer(CHAR_BEL)
+            raise ValueError
 
     def getter():
         _writer(CHAR_ESC + "[6n")
@@ -282,12 +359,12 @@ class xyctl:
         pos[0], pos[1] = int(pos[1]), int(pos[0])
         return pos
 
-    def setter(new_x, new_y):
+    def absolute_setter(new_x, new_y):
         _writer(CHAR_ESC + "[{};{}H".format(new_x, new_y))
 
-    def adjust(adj_x, adj_y):
+    def adjust_xy(adj_x, adj_y):
         new_x, new_y = xyctl._matrix_calc(adj_x, adj_y)
-        xyctl.setter(new_x, new_y)
+        xyctl.absolute_setter(new_x, new_y)
 
 #if __name__ == "__main__":
 #    print(hex(ord(_read_keypress())))

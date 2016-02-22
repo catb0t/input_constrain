@@ -5,7 +5,8 @@ import input_constrain as _ic
 _p = _ic._writer
 
 def getch(*a):
-    _p(ord(_ic._Getch()))
+    _ic.init()
+    _p(ord(_ic.reader.getch()))
 
 
 def readkey(*a):
