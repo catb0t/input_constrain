@@ -5,10 +5,31 @@ import struct
 from platform import system
 SYSTEM = system()
 
+CHAR_NUL = chr(0)
+CHAR_INT = chr(3)
+CHAR_EOF = chr(4)
+CHAR_BEL = chr(7)
+CHAR_BKS = chr(8)
+CHAR_LFD = chr(10)
+CHAR_CRR = chr(13)
+CHAR_ESC = chr(27)
+CHAR_SPC = chr(32)
+CHAR_DEL = chr(127)
+
+CONDS = [
+    (lambda i, chars: i in chars),
+    (lambda i, chars: i not in chars),
+    (lambda *args, **kwargs: False),
+]
+
+
 class _nt_reader():
 
     def __init__(self, *args, **kwargs):
         """reader on nt"""
+
+        self.NAME = "NT"
+
         self.msvcrt = __import__("msvcrt")
         self.ctypes = __import__("ctypes")
         try:
@@ -25,13 +46,12 @@ class _nt_reader():
             )
             exit(2)
 
-        self.NAME = "NT"
 
     def getch(self):
         """use msvcrt to get a char"""
         return self.msvcrt.getch()
 
-    def kbhit(self):
+    def drain_buf(self):
         """while buffer, pseudo-nonblocking read bytes from buffer using msvcrt"""
         y = []
         while self.msvcrt.kbhit():
@@ -71,6 +91,9 @@ class _posix_reader():
 
     def __init__(self, TERMCTL_SPECIAL_BUFSIZE=4096):
         """reader on posix"""
+
+        self.NAME = "POSIX"
+
         self.tty     = __import__("tty")
         self.termios = __import__("termios")
         self.fcntl   = __import__("fcntl")
@@ -79,7 +102,6 @@ class _posix_reader():
 
         self.TERM_BUFSIZE = TERMCTL_SPECIAL_BUFSIZE
 
-        self.NAME = "POSIX"
 
     def getch(self):
         """use old fashioned termios to getch"""
@@ -95,7 +117,7 @@ class _posix_reader():
         else:
             return sys.stdin.read(1)
 
-    def kbhit(self):
+    def drain_buf(self):
         """read TERM_BUFSIZE of waiting keypresses"""
         if sys.stdin.isatty():
             fd = sys.stdin.fileno()
@@ -130,25 +152,27 @@ read_class = {
     _posix_reader  # default
 )
 
-class xyctl_class(read_class):
-    UP = chr(65)
-    DN = chr(66)
-    LT = chr(67)
-    RT = chr(68)
 
-    DIRS = frozenset([UP, DN, LT, RT])  # membership
-
-    DIRCALC = {
-        UP: (0, 1),
-        DN: (0, -1),
-        LT: (-1, 0),
-        RT: (1, 0),
-    }
+class xyctl_class(read_class): # only inheriting to get at term_size without passing an instance
 
     def __init__(self):
+        """x/y control"""
+        self.UP = chr(65)  # A
+        self.DN = chr(66)
+        self.LT = chr(67)
+        self.RT = chr(68)  # D
+
+        self.DIRS = frozenset([self.UP, self.DN, self.LT, self.RT])  # membership
+
+        self.DIRCALC = {
+            self.UP: (0, 1),
+            self.DN: (0, -1),
+            self.LT: (-1, 0),
+            self.RT: (1, 0),
+        }
         self.saved = []
 
-    def _abs_matrix_calc(adj_x, adj_y):
+    def _abs_matrix_calc(self, adj_x, adj_y):
         cur_x, cur_y = xyctl.getter()
         new_x, new_y = (
             (cur_x + adj_x),
@@ -161,7 +185,8 @@ class xyctl_class(read_class):
             _writer(CHAR_BEL)
             raise ValueError
 
-    def getter():
+    def getter(self):
+        """return cursor's position in terminal"""
         _writer(CHAR_ESC + "[6n")
         pos = until("R", raw=True)
         _writer(CHAR_CRR + CHAR_NUL * (len(pos) + 1) + CHAR_CRR)
@@ -169,100 +194,95 @@ class xyctl_class(read_class):
         pos[0], pos[1] = int(pos[1]), int(pos[0])
         return pos
 
-    def absolute_setter(new_x, new_y):
+    def absolute_setter(self, new_x, new_y):
+        """set cursor position by absolute coords"""
         _writer(CHAR_ESC + "[{};{}H".format(new_x, new_y))
 
-    def adjust_xy(adj_x, adj_y):
+    def adjust_xy(self, adj_x, adj_y):
+        """adjust cursor by increments"""
         new_x, new_y = xyctl._abs_matrix_calc(adj_x, adj_y)
         xyctl.absolute_setter(new_x, new_y)
 
-    def savepos():
+    def savepos(self):
+        """save the cursor's position by appending it to a list"""
         coords = self.getter()
         self.saved.append(coords)
         return coords
 
-    def popsaved(idx=-1):
+    def popsaved(self, idx=-1):
+        """get last saved cursor pos by popping from list, or idx"""
         new = self.saved.pop(idx)
         if new:
             self.absolute_setter(*tuple(new))
             return new
 
+    def process_arrowkey(self, seq):
+        pass
+        
+
+
+class util():
+    """utilities"""
+    def parsenum(num):
+        """sys.maxsize if num is negative"""
+        num = int(num)
+        return sys.maxsize if num < 0 else num
+
+    def writer(*args):
+        """write a string to stdout and flush.
+        should be used by all stdout-writing"""
+        if not args:
+            raise TypeError("_writer requires at least one argument")
+        args = " ".join(str(i) for i in args).strip()
+        sys.stdout.write(args)
+        sys.stdout.flush()
 
 
 def init(TERM_BUFSIZE=4096):
+    """module initialiser: calls constructors so you don't have to
+    you must call this before other functions!"""
     global reader, xyctl
     reader = read_class(TERMCTL_SPECIAL_BUFSIZE=TERM_BUFSIZE)
     xyctl  = xyctl_class()
 
-def parsenum(num):
-    num = int(num)
-    return sys.maxsize if num < 0 else num
-
-CHAR_NUL = chr(0)
-CHAR_INT = chr(3)
-CHAR_EOF = chr(4)
-CHAR_BEL = chr(7)
-CHAR_BKS = chr(8)
-CHAR_LFD = chr(10)
-CHAR_CRR = chr(13)
-CHAR_ESC = chr(27)
-CHAR_SPC = chr(32)
-CHAR_DEL = chr(127)
-
-CONDS = [
-    (lambda i, chars: i in chars),
-    (lambda i, chars: i not in chars),
-    (lambda *args, **kwargs: False),
-]
 
 
 def readkey(raw=False):
-    """interface for _Getch that interprets backspace and DEL properly"""
-    c = _Getch()
-
+    """interface for getch + drain_buf
+    if raw, behave like getch but with flushing for multibyte inputs"""
+    ch = reader.getch()
+    more = reader.drain_buf()
     if raw:
-        return c
+        return ch + more
 
     # cooked
 
-    if c == CHAR_INT: raise KeyboardInterrupt
-    if c == CHAR_EOF: raise EOFError
+    if ch == CHAR_INT: raise KeyboardInterrupt
+    if ch == CHAR_EOF: raise EOFError
 
-    if c in (CHAR_BKS, CHAR_DEL):
+    if ch in (CHAR_BKS, CHAR_DEL):
         _writer(CHAR_BKS)
         _writer(CHAR_SPC)  # hacky? indeed. does it *work*? hell yeah!
 
-    elif c in (CHAR_CRR, CHAR_LFD):
+    elif ch in (CHAR_CRR, CHAR_LFD):
         _writer(CHAR_CRR if SYSTEM == "Windows" else "")
         _writer(CHAR_LFD)
         return CHAR_LFD
 
-    elif c == CHAR_ESC:
-        more = _Kbhit()
+    elif ch == CHAR_ESC:
         if more[0] == "[":
             sp = more[1:]
             if sp in xyctl.DIRS:
-                ...
-        #if d == "[" and e in xyctl.DIRS:
-        #    adj_x, adj_y = xyctl.DIRCALC[e]
-        #    _writer("going " + str(adj_x) + str(adj_y))
-            # xyctl.adjust(adj_x, adj_y)
+                xyctl.process_arrowkey(sp)
+            else:
+                return CHAR_ESC + more
 
-    return c
+    return ch + more
+
 
 def raw_readkey():
     """alias for readkey(raw=True)"""
     return readkey(raw=True)
-
-
-def _writer(*args):
-    """write a string to stdout and flush.
-    should be used by all stdout-writing"""
-    if not args:
-        raise TypeError("_writer requires at least one argument")
-    args = " ".join(str(i) for i in args).strip()
-    sys.stdout.write(args)
-    sys.stdout.flush()
 
 
 def _nbsp(x, y):
@@ -294,6 +314,7 @@ def _do_condition(
         ignore_condition=CONDS[True + 1],
         raw=False
     ):
+    """singular interface to reading strings from readkey, to minimise duplication"""
     y = []
     count = parsenum(count)
     while len(y) <= count:
@@ -382,8 +403,3 @@ def ignore_not(
         raw=raw,
         invert=True
     )
-
-
-
-#if __name__ == "__main__":
-#    print(hex(ord(_read_keypress())))

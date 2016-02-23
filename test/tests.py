@@ -24,21 +24,29 @@ elif VERINFO.major == 3:
         pmlr = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(pmlr)
 
+    else:
+        raise NotImplementedError(VERINFO.minor)
+else:
+    raise NotImplementedError(VERINFO.major)
+
 
 class TestKPReader(unittest.TestCase):
+
+    def setUp(self):
+        pmlr.init()
 
     def test_parsenum(self):
         """test parsenum"""
         nums = (-MAXSIZE, -122, -1, 0, 8, 88, 888880, MAXSIZE)
         for elem in nums:
-            result = pmlr.parsenum(elem)
+            result = pmlr.util.parsenum(elem)
             expect = MAXSIZE if elem < 0 else elem
             self.assertEqual(result, expect)
 
     def test_parsenum_complex(self):
         """test parsenum failure"""
         with self.assertRaises(TypeError):
-            pmlr.parsenum(8j)
+            pmlr.util.parsenum(8j)
 
     def test_getch(self):
         """test getch (patience)"""
@@ -55,7 +63,7 @@ class TestKPReader(unittest.TestCase):
 
     def test_read_keypress(self):
         """test readkey (patience)"""
-        specials = { # special cases
+        specials = {  # special cases
             3: "KeyboardInterrupt",
             4: "EOFError",
             8: b'\x08\x088',
