@@ -2,11 +2,11 @@
 import unittest
 import subprocess as sp
 from sys import executable as py, maxsize as MAXSIZE, version_info as VERINFO
-from os import getcwd
+from os import getcwd, path
 
-TESTMOD_INFO = ("pmlr", getcwd() + "/../pmlr/pmlr/pmlr.py")
+TESTMOD_INFO = ("pmlr", path.join(getcwd(), "..", "pmlr", "pmlr", "__main__.py"))
 
-TEST_HELP = getcwd() + "/../pmlr/test/_tests_helper.py"
+TEST_HELP = path.join(getcwd(), "..", "pmlr", "test", "_tests_helper.py")
 
 
 if VERINFO.major == 2:
@@ -23,17 +23,12 @@ elif VERINFO.major == 3:
         spec = importlib.util.spec_from_file_location(*TESTMOD_INFO)
         pmlr = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(pmlr)
-
-    else:
-        raise NotImplementedError(VERINFO.minor)
 else:
-    raise NotImplementedError(VERINFO.major)
+    raise NotImplementedError("unsupported Python version: ", VERINFO.major)
 
 
-class TestKPReader(unittest.TestCase):
-
-    def setUp(self):
-        pmlr.init()
+class TestUtilsNoIO(unittest.TestCase):
+    """io-less util tests"""
 
     def test_parsenum(self):
         """test parsenum"""
@@ -47,6 +42,12 @@ class TestKPReader(unittest.TestCase):
         """test parsenum failure"""
         with self.assertRaises(TypeError):
             pmlr.util.parsenum(8j)
+
+
+class TestKPressIO(unittest.TestCase):
+
+    def setUp(self):
+        pmlr.init()
 
     def test_getch(self):
         """test getch (patience)"""
