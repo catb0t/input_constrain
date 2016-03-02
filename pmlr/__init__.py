@@ -34,9 +34,10 @@ def init(TERM_BUFSIZE=4096):
 
 
 def checkinit(func, *args, **kwargs):
+    from functools import wraps
 
+    @wraps(func)
     def isdefined(*args, **kwargs):
-
         if "reader" not in globals().keys():
             print("\n\tfatal: init() not called\n")
             msg = "must call init() first, or call init() again before {}()".format(func.__name__)
