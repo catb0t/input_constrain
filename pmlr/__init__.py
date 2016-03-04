@@ -47,6 +47,63 @@ def checkinit(func, *args, **kwargs):
 
     return isdefined
 
+def override(func, *args, **kwargs):
+    from functools import wraps
+
+    @wraps(func)
+    def pointless(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return pointless
+
+
+class SmartList():
+
+    def noneFilter(self, obj):
+        self.idx = obj if obj is not None else self.idx
+        return self.idx
+
+    def __init__(self):
+        self.lst = []
+        self.idx = 0
+
+    def currentItem(self):
+        return self.lst[self.idx]
+
+    def push(self, item):
+        self.place(item, idx=self.idx)
+
+    def pop(self, idx=None):
+        self.noneFilter(idx)
+        return self.lst.pop(self.idx)
+
+    def peek(self, idx=None):
+        self.noneFilter(idx)
+        return self.lst[self.idx]
+
+    def place(self, item, idx=None):
+        # this method is named place instead of insert
+        # because the signature is sadly different (index, item) -> (item, index)
+        # because of the default value
+        self.noneFilter(idx)
+        self.lst.insert(self.idx, item)
+
+    def __getattr__(self, name):
+        return object.__getattribute__(self, name)
+
+    def __setitem__(self, other):
+        self.lst[self.idx] = other
+
+    def __getitem__(self, idx=None):
+        return self.lst[
+            self.idx
+                if idx is None
+                else idx
+        ]
+
+    def __len__(self):
+        return len(self.lst)
+
 
 class _nt_reader():
 
@@ -147,11 +204,13 @@ read_class = {
 
 class util():
     """utilities"""
+    @staticmethod
     def parsenum(num):
         """sys.maxsize if num is negative"""
         num = int(num)
         return sys.maxsize if num < 0 else num
 
+    @staticmethod
     def writer(*args):
         """write a string to stdout and flush.
         should be used by all stdout-writing"""
@@ -164,16 +223,21 @@ class util():
         sys.stdout.write(args)
         sys.stdout.flush()
 
-    def esc_filter(x, y):
+    @staticmethod
+    def esc_filter(c, y):
         """append x to y as long as x is not DEL or backspace or esc"""
-        if x in (CHAR.DEL, CHAR.BKS):
-            try:
-                y.pop()
-            except IndexError:
-                pass
+        if c in (CHAR.DEL, CHAR.BKS):
+            try: y.pop()
+            except IndexError: pass
             return y
 
-        y.append(x)
+        """elif c.startswith("\x1b["):
+            y.idx += {
+                "D": -1,
+                "C": 1
+            }.get(c[-1], (lambda: None))"""
+
+        y.append(c)
         return y
 
 
@@ -197,23 +261,14 @@ def readkey(raw=False):
         return CHAR.BKS
 
     elif ch in (CHAR.CRR, CHAR.LFD):
-        util.writer(CHAR.CRR if SYSTEM == "Windows" else "")
-        return CHAR.LFD
+        return (CHAR.CRR if SYSTEM == "Windows" else "") + CHAR.LFD
 
     elif ch == CHAR.ESC:
         if more:
-            if more[0] == "[":
-                sp = more[1:]
-                if sp in ("D", "C"):
-                    return "\033[" + sp
-
-                elif sp == "3~":
-                    return CHAR.SPC
-
-                else:
-                    return CHAR.BEL
-            else:
-                return CHAR.ESC + more
+            sp = more[1:]
+            if sp in ("3~", "A", "B", "C", "D"):
+                util.writer(CHAR.BEL)
+            return CHAR.SPC  # CHAR.ESC + more
 
     ch += more
     return ch
@@ -339,4 +394,5 @@ def ignore_not(
     )
 
 if DEBUG:
+    util.writer("init'd")
     init()
