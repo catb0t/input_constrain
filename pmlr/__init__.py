@@ -390,7 +390,10 @@ def ignore_not(
         raw=raw,
         invert=True
     )
+<<<<<<< HEAD
 
+=======
+>>>>>>> 215269e707db2ab126457bf14db01135ce06b2a6
 """if DEBUG:
     util.writer("init'd")
     init()"""
