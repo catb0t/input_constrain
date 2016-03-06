@@ -392,7 +392,6 @@ def ignore_not(
         raw=raw,
         invert=True
     )
-
-if DEBUG:
+"""if DEBUG:
     util.writer("init'd")
-    init()
+    init()"""
