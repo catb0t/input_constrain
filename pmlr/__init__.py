@@ -57,54 +57,6 @@ def override(func, *args, **kwargs):
     return pointless
 
 
-class SmartList():
-
-    def noneFilter(self, obj):
-        self.idx = obj if obj is not None else self.idx
-        return self.idx
-
-    def __init__(self):
-        self.lst = []
-        self.idx = 0
-
-    def currentItem(self):
-        return self.lst[self.idx]
-
-    def push(self, item):
-        self.place(item, idx=self.idx)
-
-    def pop(self, idx=None):
-        self.noneFilter(idx)
-        return self.lst.pop(self.idx)
-
-    def peek(self, idx=None):
-        self.noneFilter(idx)
-        return self.lst[self.idx]
-
-    def place(self, item, idx=None):
-        # this method is named place instead of insert
-        # because the signature is sadly different (index, item) -> (item, index)
-        # because of the default value
-        self.noneFilter(idx)
-        self.lst.insert(self.idx, item)
-
-    def __getattr__(self, name):
-        return object.__getattribute__(self, name)
-
-    def __setitem__(self, other):
-        self.lst[self.idx] = other
-
-    def __getitem__(self, idx=None):
-        return self.lst[
-            self.idx
-                if idx is None
-                else idx
-        ]
-
-    def __len__(self):
-        return len(self.lst)
-
-
 class _nt_reader():
 
     def __init__(self, *args, **kwargs):
@@ -204,6 +156,7 @@ read_class = {
 
 class util():
     """utilities"""
+
     @staticmethod
     def parsenum(num):
         """sys.maxsize if num is negative"""
@@ -211,17 +164,62 @@ class util():
         return sys.maxsize if num < 0 else num
 
     @staticmethod
-    def writer(*args):
-        """write a string to stdout and flush.
+    def writer(*args, fd=sys.stdout, flush=True):
+        """write a string to file descriptor and flush.
         should be used by all stdout-writing"""
+
         if not args:
             raise TypeError("writer requires at least one argument")
+
         if len(args) > 1:
             args = " ".join(str(i) for i in args).strip(" ")
         else:
             args = "".join(str(i) for i in args)
-        sys.stdout.write(args)
-        sys.stdout.flush()
+
+        if not isinstance(fd, (tuple, list, dict)):
+            fd.write(args)
+
+        elif isinstance(fd, (tuple, list)):
+            for s in fd:
+                s.write(args)
+                if flush:
+                    s.flush()
+
+        elif isinstance(fd, dict):
+            for s in fd.values():
+                s.write(args)
+                if flush:
+                    s.flush()
+
+        else:
+            raise TypeError("file descriptors not provided in a sane format")
+
+    @staticmethod
+    def debug_write(*args, level="INFO", fd=(sys.stdout, sys.stderr)):
+        if DEBUG:
+
+            stat_txt = {
+                "INFO":  "{}[1;32mINFO{}",     # info  = green
+                "WARN":  "{}[1;31mWARN{}",     # warn  = light red
+                "ERROR": "{}[0;31mERROR{}",    # error = red
+                "FATAL": "{}[0;31mFATAL{}",    # fatal = red
+                "RANGE": "{}[1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
+                "DEBUG": "{}[0;34mDEBUG{}",    # debug = blue
+            }
+
+            out = stat_txt.get(level, out)
+
+            if level in stat_txt:
+                out = out.format(
+                    CHAR.ESC,
+                    CHAR.ESC + "[m"
+                )
+
+            util.writer(
+                "[", stat_txt, "]"
+                *args,
+                fd=fd
+            )
 
     @staticmethod
     def esc_filter(c, y):
@@ -393,6 +391,6 @@ def ignore_not(
         invert=True
     )
 
-if DEBUG:
+"""if DEBUG:
     util.writer("init'd")
-    init()
+    init()"""
