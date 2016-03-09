@@ -177,8 +177,8 @@ class util():
             args = "".join(str(i) for i in args)
 
         pf = (
-            lambda fd, *a: (
-                fd.write(*a)
+            lambda fd, a: (
+                fd.write(a)
                 or (
                     fd.flush() if flush else ()
                 )
@@ -186,15 +186,15 @@ class util():
         )
 
         if not isinstance(fd, (tuple, list, dict)):
-            pf(fd, *args)
+            pf(fd, args)
 
         elif isinstance(fd, (tuple, list)):
             for s in fd:
-                pf(s, *args)
+                pf(s, args)
 
         elif isinstance(fd, dict):
             for s in fd.values():
-                pf(s, *args)
+                pf(s, args)
 
         else:
             raise TypeError("file descriptors not provided in a sane format")
