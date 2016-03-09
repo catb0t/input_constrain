@@ -197,7 +197,7 @@ class util():
             raise TypeError("file descriptors not provided in a sane format")
 
     @staticmethod
-    def debug_fmt(level=""):
+    def debug_fmt(level):
         return "[ " + {
             "INFO":  "{}1;32mINFO{}",     # info  = green
             "WARN":  "{}1;31mWARN{}",     # warn  = light red
@@ -206,17 +206,17 @@ class util():
             "RANGE": "{}1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
             "DEBUG": "{}1;34mDEBUG{}",    # debug = blue
         }.get(
-            level, "{}1;31m" + "MISC" + "{}"
+            level, "{}1;31mMISC{}"
         ).format(
             CHAR.ESC + "[",
             CHAR.ESC + "[m"
-        ) + " ]"
+        ) + " ] "
 
     @staticmethod
     def debug_write(*args, level="INFO", fd=sys.stdout):
         if DEBUG:
             util.writer(
-                util.debug_fmt(*args, level=level),
+                util.debug_fmt(level),
                 *args,
                 fd=fd
             )
