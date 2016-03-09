@@ -176,47 +176,51 @@ class util():
         else:
             args = "".join(str(i) for i in args)
 
+        pf = (
+            lambda fd, *a: (
+                fd.write(*a)
+                or (
+                    fd.flush() if flush else ()
+                )
+            )
+        )
+
         if not isinstance(fd, (tuple, list, dict)):
-            fd.write(args)
+            pf(fd, *args)
 
         elif isinstance(fd, (tuple, list)):
             for s in fd:
-                s.write(args)
-                if flush:
-                    s.flush()
+                pf(s, *args)
 
         elif isinstance(fd, dict):
             for s in fd.values():
-                s.write(args)
-                if flush:
-                    s.flush()
+                pf(s, *args)
 
         else:
             raise TypeError("file descriptors not provided in a sane format")
 
     @staticmethod
-    def debug_write(*args, level="INFO", fd=(sys.stdout, sys.stderr)):
+    def debug_fmt(level=""):
+        return "[ " {
+            "INFO":  "{}1;32mINFO{}",     # info  = green
+            "WARN":  "{}1;31mWARN{}",     # warn  = light red
+            "ERROR": "{}1;31mERROR{}",    # error = red
+            "FATAL": "{}1;31mFATAL{}",    # fatal = red
+            "RANGE": "{}1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
+            "DEBUG": "{}1;34mDEBUG{}",    # debug = blue
+        }.get(
+            level, "{}1;31m" + "MISC" + "{}"
+        ).format(
+            CHAR.ESC + "[",
+            CHAR.ESC + "[m"
+        ) + " ]"
+
+    @staticmethod
+    def debug_write(*args, level="INFO", fd=(sys.stdout)):
         if DEBUG:
 
-            stat_txt = {
-                "INFO":  "{}[1;32mINFO{}",     # info  = green
-                "WARN":  "{}[1;31mWARN{}",     # warn  = light red
-                "ERROR": "{}[0;31mERROR{}",    # error = red
-                "FATAL": "{}[0;31mFATAL{}",    # fatal = red
-                "RANGE": "{}[1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
-                "DEBUG": "{}[0;34mDEBUG{}",    # debug = blue
-            }
-
-            out = stat_txt.get(level, out)
-
-            if level in stat_txt:
-                out = out.format(
-                    CHAR.ESC,
-                    CHAR.ESC + "[m"
-                )
-
             util.writer(
-                "[", stat_txt, "]"
+                debug_fmt(*args, level=level),
                 *args,
                 fd=fd
             )
@@ -390,10 +394,3 @@ def ignore_not(
         raw=raw,
         invert=True
     )
-<<<<<<< HEAD
-
-=======
->>>>>>> 215269e707db2ab126457bf14db01135ce06b2a6
-"""if DEBUG:
-    util.writer("init'd")
-    init()"""
