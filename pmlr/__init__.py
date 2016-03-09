@@ -176,25 +176,22 @@ class util():
         else:
             args = "".join(str(i) for i in args)
 
-        pf = (
-            lambda fd, a: (
-                fd.write(a)
-                or (
-                    fd.flush() if flush else ()
-                )
-            )
-        )
+        def wflush(fd, args):
+            fd.write(args)
+            if flush:
+                fd.flush()
+
 
         if not isinstance(fd, (tuple, list, dict)):
-            pf(fd, args)
+            wflush(fd, args)
 
         elif isinstance(fd, (tuple, list)):
             for s in fd:
-                pf(s, args)
+                wflush(s, args)
 
         elif isinstance(fd, dict):
             for s in fd.values():
-                pf(s, args)
+                wflush(s, args)
 
         else:
             raise TypeError("file descriptors not provided in a sane format")
