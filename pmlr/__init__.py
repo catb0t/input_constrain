@@ -198,19 +198,21 @@ class util():
 
     @staticmethod
     def debug_fmt(level):
+        assert level not in (None, ""), "level must not be None or EmptyString"
+        level = level.upper()
         return "[ " + {
             "INFO":  "{}1;32mINFO{}",     # info  = green
             "WARN":  "{}1;31mWARN{}",     # warn  = light red
             "ERROR": "{}1;31mERROR{}",    # error = red
             "FATAL": "{}1;31mFATAL{}",    # fatal = red
             "RANGE": "{}1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
-            "DEBUG": "{}1;34mDEBUG{}",    # debug = blue
+            "DEBUG": "{}1;36mDEBUG{}",    # debug = blue
         }.get(
-            level, "{}1;31mMISC{}"
+            level, "{}1;36m" + level + "{}"
         ).format(
             CHAR.ESC + "[",
             CHAR.ESC + "[m"
-        ) + " ] "
+        ) + " ]"
 
     @staticmethod
     def debug_write(*args, level="INFO", fd=sys.stdout):
