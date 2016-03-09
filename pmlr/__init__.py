@@ -186,12 +186,7 @@ class util():
         )
 
         if not isinstance(fd, (tuple, list, dict)):
-<<<<<<< HEAD
             pf(fd, *args)
-=======
-            fd.write(args)
-            fd.flush()
->>>>>>> fb9b198b729ee329422c918f529ad9d63e8a09e5
 
         elif isinstance(fd, (tuple, list)):
             for s in fd:
@@ -205,9 +200,8 @@ class util():
             raise TypeError("file descriptors not provided in a sane format")
 
     @staticmethod
-<<<<<<< HEAD
     def debug_fmt(level=""):
-        return "[ " {
+        return "[ " + {
             "INFO":  "{}1;32mINFO{}",     # info  = green
             "WARN":  "{}1;31mWARN{}",     # warn  = light red
             "ERROR": "{}1;31mERROR{}",    # error = red
@@ -222,37 +216,10 @@ class util():
         ) + " ]"
 
     @staticmethod
-    def debug_write(*args, level="INFO", fd=(sys.stdout)):
-        if DEBUG:
-=======
-    def _debug_fmt(level):
-        return "( " + {
-            "INFO":  "{}[1;32mINFO{}",     # info  = green
-            "WARN":  "{}[1;33mWARN{}",     # warn  = yellow
-            "ERROR": "{}[1;31mERROR{}",    # error = red
-            "FATAL": "{}[1;31mFATAL{}",    # fatal = red
-            "RANGE": "{}[1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
-            "DEBUG": "{}[1;34mDEBUG{}",    # debug = blue
-            "LOG":   "{}[1;36mLOG{}",      # log   = cyan
-        }.get(
-            level,
-            "{}[1;33m" + (level or "LOG") + "{}"  # default = log + yellow
-        ).format(
-            CHAR.ESC,
-            CHAR.ESC + "[m"
-        ) + " )"
-
->>>>>>> fb9b198b729ee329422c918f529ad9d63e8a09e5
-
-    @staticmethod
     def debug_write(*args, level="INFO", fd=sys.stdout):
         if DEBUG:
             util.writer(
-<<<<<<< HEAD
-                debug_fmt(*args, level=level),
-=======
-                util._debug_fmt(level),
->>>>>>> fb9b198b729ee329422c918f529ad9d63e8a09e5
+                util.debug_fmt(*args, level=level),
                 *args,
                 fd=fd
             )
@@ -425,12 +392,4 @@ def ignore_not(
         count=count,
         raw=raw,
         invert=True
-<<<<<<< HEAD
     )
-=======
-    )
-
-"""if DEBUG:
-    util.writer("init'd")
-    init()"""
->>>>>>> fb9b198b729ee329422c918f529ad9d63e8a09e5
