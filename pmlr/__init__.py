@@ -47,15 +47,6 @@ def checkinit(func, *args, **kwargs):
 
     return isdefined
 
-def override(func, *args, **kwargs):
-    from functools import wraps
-
-    @wraps(func)
-    def pointless(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    return pointless
-
 
 class _nt_reader():
 
@@ -181,16 +172,11 @@ class util():
             if flush:
                 fd.flush()
 
-
-        if not isinstance(fd, (tuple, list, dict)):
+        if not isinstance(fd, (tuple, list)):
             wflush(fd, args)
 
         elif isinstance(fd, (tuple, list)):
             for s in fd:
-                wflush(s, args)
-
-        elif isinstance(fd, dict):
-            for s in fd.values():
                 wflush(s, args)
 
         else:
@@ -205,7 +191,7 @@ class util():
             "WARN":  "{}1;31mWARN{}",     # warn  = light red
             "ERROR": "{}1;31mERROR{}",    # error = red
             "FATAL": "{}1;31mFATAL{}",    # fatal = red
-            "RANGE": "{}1;33mRANGE_VIOLATION{}",  # stack over / underflow = yellow
+            "RANGE": "{}1;33mRANGE_VIOLATION{}",  # over / underflow = yellow
             "DEBUG": "{}1;36mDEBUG{}",    # debug = blue
         }.get(
             level, "{}1;36m" + level + "{}"
@@ -215,10 +201,30 @@ class util():
         ) + " ]"
 
     @staticmethod
-    def debug_write(*args, level="INFO", fd=sys.stdout):
+    def debug_write(
+            *args,
+            level = "INFO",
+            fd    = sys.stdout,
+            cframe = {
+                "FILE": None,
+                "FUNC": None,
+                "LINE": None,
+            }
+        ):
+        import inspect
+        callerframercrd = inspect.stack()[1]
+        frame = callerframercrd[0]
+        info  = inspect.getframeinfo(frame)
+        FILE, FUNC, LINE = info.filename, info.function, info.lineno
+
         if DEBUG:
             util.writer(
                 util.debug_fmt(level),
+                "line {}, function {}, file {}".format(
+                    cframe["LINE"] or LINE,
+                    cframe["FUNC"] or FUNC,
+                    cframe["FILE"] or FILE
+                ),
                 *args,
                 fd=fd
             )
