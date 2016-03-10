@@ -189,11 +189,12 @@ class util():
                 "FILE": None,
                 "FUNC": None,
                 "LINE": None,
-            }
+            },
+            framelevel = 2,
         ):
 
         import inspect
-        callerframercrd = inspect.stack()[2]
+        callerframercrd = inspect.stack()[framelevel]
         frame = callerframercrd[0]
         info  = inspect.getframeinfo(frame)
         FILE, FUNC, LINE = info.filename, info.function, info.lineno
@@ -227,11 +228,12 @@ class util():
                 "FILE": None,
                 "FUNC": None,
                 "LINE": None,
-            }
+            },
+            framelevel = 1
         ):
 
         import inspect
-        callerframercrd = inspect.stack()[1]
+        callerframercrd = inspect.stack()[framelevel]
         frame = callerframercrd[0]
         info  = inspect.getframeinfo(frame)
         FILE, FUNC, LINE = info.filename, info.function, info.lineno
@@ -244,7 +246,8 @@ class util():
                         "FILE": cframe["FILE"] or FILE,
                         "FUNC": cframe["FUNC"] or FUNC,
                         "LINE": cframe["LINE"] or LINE,
-                    }
+                    },
+                    framelevel = framelevel
                 ),
                 *args,
                 fd=fd
