@@ -183,7 +183,21 @@ class util():
             raise TypeError("file descriptors not provided in a sane format")
 
     @staticmethod
-    def debug_fmt(level):
+    def debug_fmt(
+            level,
+            cframe = {
+                "FILE": None,
+                "FUNC": None,
+                "LINE": None,
+            }
+        ):
+
+        import inspect
+        callerframercrd = inspect.stack()[1]
+        frame = callerframercrd[0]
+        info  = inspect.getframeinfo(frame)
+        FILE, FUNC, LINE = info.filename, info.function, info.lineno
+
         assert level not in (None, ""), "level must not be None or EmptyString"
         level = level.upper()
         return "[ " + {
@@ -198,19 +212,24 @@ class util():
         ).format(
             CHAR.ESC + "[",
             CHAR.ESC + "[m"
-        ) + " ]"
+        ) + " ] line {}, function {}, file {} ::".format(
+            cframe["LINE"] or LINE,
+            cframe["FUNC"] or FUNC,
+            cframe["FILE"] or FILE,
+        )
 
     @staticmethod
     def debug_write(
             *args,
-            level = "INFO",
-            fd    = sys.stdout,
+            level  = "INFO",
+            fd     = sys.stdout,
             cframe = {
                 "FILE": None,
                 "FUNC": None,
                 "LINE": None,
             }
         ):
+
         import inspect
         callerframercrd = inspect.stack()[1]
         frame = callerframercrd[0]
@@ -219,11 +238,13 @@ class util():
 
         if DEBUG:
             util.writer(
-                util.debug_fmt(level),
-                "line {}, function {}, file {}".format(
-                    cframe["LINE"] or LINE,
-                    cframe["FUNC"] or FUNC,
-                    cframe["FILE"] or FILE
+                util.debug_fmt(
+                    level,
+                    cframe = {
+                        "FILE": cframe["FILE"] or FILE,
+                        "FUNC": cframe["FUNC"] or FUNC,
+                        "LINE": cframe["LINE"] or LINE,
+                    }
                 ),
                 *args,
                 fd=fd
